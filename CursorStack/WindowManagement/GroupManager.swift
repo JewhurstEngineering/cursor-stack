@@ -204,13 +204,64 @@ final class GroupManager: ObservableObject {
                 < $1.frame.intersection(group.synchronizedFrame).width * $1.frame.intersection(group.synchronizedFrame).height
         } ?? NSScreen.main
         guard let visible = screen?.visibleFrame else { return }
-        let tabHeight = delegate?.tabHeight ?? 36
+        let tabHeight = delegate?.tabHeight ?? 44
         let content = ScreenCoordinateConverter.maximizedContentFrame(visibleFrame: visible, tabHeight: tabHeight)
+        if !ScreenCoordinateConverter.framesApproximatelyEqual(group.synchronizedFrame, content, tolerance: 8) {
+            group.frameBeforeMaximize = group.synchronizedFrame
+        }
         group.isPaused = false
         synchronizeFrame(content, in: groupID)
         if let active = group.activeWindow {
             FocusCoordinator.activate(window: active, discovery: discovery, accessibility: accessibility)
         }
+    }
+
+    func toggleMaximize(_ groupID: UUID) {
+        guard let group = groups.first(where: { $0.id == groupID }) else { return }
+        let screen = NSScreen.screens.max {
+            $0.frame.intersection(group.synchronizedFrame).width * $0.frame.intersection(group.synchronizedFrame).height
+                < $1.frame.intersection(group.synchronizedFrame).width * $1.frame.intersection(group.synchronizedFrame).height
+        } ?? NSScreen.main
+        let tabHeight = delegate?.tabHeight ?? 44
+        if let visible = screen?.visibleFrame {
+            let maximized = ScreenCoordinateConverter.maximizedContentFrame(visibleFrame: visible, tabHeight: tabHeight)
+            if ScreenCoordinateConverter.framesApproximatelyEqual(group.synchronizedFrame, maximized, tolerance: 8),
+               let restored = group.frameBeforeMaximize {
+                synchronizeFrame(restored, in: groupID)
+                return
+            }
+        }
+        maximize(groupID)
+    }
+
+    func minimizeGroup(_ groupID: UUID) {
+        guard let group = groups.first(where: { $0.id == groupID }) else { return }
+        for window in group.liveWindows {
+            try? accessibility.minimize(window.snapshot)
+            window.isMinimized = true
+        }
+        group.objectWillChange.send()
+        objectWillChange.send()
+    }
+
+    func closeActiveWindow(in groupID: UUID) {
+        guard let group = groups.first(where: { $0.id == groupID }),
+              let active = group.activeWindow else { return }
+        closeCursorWindow(active.id)
+    }
+
+    func moveGroup(_ groupID: UUID, matchingTabPanel panelFrame: CGRect) {
+        guard let group = groups.first(where: { $0.id == groupID }) else { return }
+        guard !group.isApplyingSynchronizedFrame else { return }
+        let height = max(group.synchronizedFrame.height, 200)
+        let newFrame = CGRect(
+            x: panelFrame.minX,
+            y: panelFrame.minY - height,
+            width: panelFrame.width,
+            height: height
+        )
+        group.synchronizedFrame = newFrame
+        applyCanonicalFrame(in: group, raising: nil)
     }
 
     func renameGroup(_ groupID: UUID, to name: String) {

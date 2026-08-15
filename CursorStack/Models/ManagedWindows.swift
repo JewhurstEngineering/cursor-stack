@@ -88,6 +88,7 @@ final class RuntimeWindowGroup: ObservableObject, Identifiable {
     @Published var isFullScreenPaused: Bool
     var isApplyingSynchronizedFrame = false
     var synchronizationGeneration: UInt64 = 0
+    var frameBeforeMaximize: CGRect?
 
     var activeWindow: ManagedCursorWindow? {
         windows.first(where: { $0.id == activeWindowID }) ?? windows.first
@@ -95,6 +96,10 @@ final class RuntimeWindowGroup: ObservableObject, Identifiable {
 
     var liveWindows: [ManagedCursorWindow] {
         windows.filter { !$0.isClosed && !$0.isUnavailable }
+    }
+
+    var isMinimized: Bool {
+        activeWindow?.isMinimized == true
     }
 
     init(

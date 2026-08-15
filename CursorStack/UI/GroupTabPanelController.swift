@@ -1,22 +1,29 @@
 import AppKit
 import SwiftUI
 
+final class MovableHostingView<Content: View>: NSHostingView<Content> {
+    override var mouseDownCanMoveWindow: Bool { true }
+}
+
 @MainActor
-final class GroupTabPanelController: NSObject {
+final class GroupTabPanelController: NSObject, NSWindowDelegate {
     let groupID: UUID
     private let panel: NSPanel
-    private let hosting: NSHostingView<TabStripView>
+    private let hosting: MovableHostingView<TabStripView>
     private weak var app: ApplicationController?
+    private var isAligning = false
+    private var endMoveWork: DispatchWorkItem?
+    private(set) var isUserMoving = false
 
     init(group: RuntimeWindowGroup, app: ApplicationController) {
         self.groupID = group.id
         self.app = app
         let root = TabStripView(groupID: group.id, app: app)
-        let hosting = NSHostingView(rootView: root)
+        let hosting = MovableHostingView(rootView: root)
         self.hosting = hosting
 
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 640, height: 36),
+            contentRect: NSRect(x: 0, y: 0, width: 640, height: 44),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -24,16 +31,17 @@ final class GroupTabPanelController: NSObject {
         panel.isFloatingPanel = true
         panel.becomesKeyOnlyIfNeeded = true
         panel.level = NSWindow.Level(rawValue: NSWindow.Level.normal.rawValue + 2)
-        panel.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary, .transient]
-        panel.isOpaque = false
-        panel.backgroundColor = .clear
+        panel.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
+        panel.isOpaque = true
+        panel.backgroundColor = .windowBackgroundColor
         panel.hasShadow = true
         panel.hidesOnDeactivate = false
         panel.ignoresMouseEvents = false
+        panel.isMovableByWindowBackground = true
         panel.contentView = hosting
-        panel.isMovableByWindowBackground = false
         self.panel = panel
         super.init()
+        panel.delegate = self
         align(to: group.synchronizedFrame, tabHeight: app.settingsStore.settings.tabHeight)
         panel.orderFrontRegardless()
     }
@@ -48,16 +56,44 @@ final class GroupTabPanelController: NSObject {
             height: tabHeight,
             visibleFrame: visible
         )
+        isAligning = true
         panel.setFrame(frame, display: true)
+        isAligning = false
         if let app {
             hosting.rootView = TabStripView(groupID: groupID, app: app)
         }
         panel.orderFrontRegardless()
     }
 
+    func setHidden(_ hidden: Bool) {
+        if hidden {
+            panel.orderOut(nil)
+        } else {
+            panel.orderFrontRegardless()
+        }
+    }
+
     func close() {
         panel.orderOut(nil)
         panel.close()
+    }
+
+    func windowWillMove(_ notification: Notification) {
+        isUserMoving = true
+    }
+
+    func windowDidMove(_ notification: Notification) {
+        guard !isAligning, let app else { return }
+        isUserMoving = true
+        app.groupManager.moveGroup(groupID, matchingTabPanel: panel.frame)
+        endMoveWork?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            self.isUserMoving = false
+            self.app?.persistGroupsAfterPanelMove()
+        }
+        endMoveWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15, execute: work)
     }
 }
 

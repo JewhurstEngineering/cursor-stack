@@ -43,9 +43,9 @@ struct SettingsView: View {
     private var tabs: some View {
         Form {
             Picker("Tab height", selection: settings.tabHeight) {
-                Text("Compact").tag(CGFloat(32))
-                Text("Regular").tag(CGFloat(36))
-                Text("Comfortable").tag(CGFloat(40))
+                Text("Compact").tag(CGFloat(40))
+                Text("Regular").tag(CGFloat(44))
+                Text("Comfortable").tag(CGFloat(52))
             }
             Toggle("Project name", isOn: settings.showProjectName)
             Toggle("Full Cursor window title", isOn: settings.showFullTitle)

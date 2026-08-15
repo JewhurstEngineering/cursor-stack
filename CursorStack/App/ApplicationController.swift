@@ -315,6 +315,14 @@ final class ApplicationController: NSObject, ObservableObject {
             if tabPanels[group.id] == nil {
                 tabPanels[group.id] = GroupTabPanelController(group: group, app: self)
             }
+            if group.isMinimized {
+                tabPanels[group.id]?.setHidden(true)
+                continue
+            }
+            if tabPanels[group.id]?.isUserMoving == true {
+                continue
+            }
+            tabPanels[group.id]?.setHidden(false)
             let frame = group.activeWindow?.frame ?? group.synchronizedFrame
             tabPanels[group.id]?.align(to: frame, tabHeight: tabHeight)
         }
@@ -322,6 +330,10 @@ final class ApplicationController: NSObject, ObservableObject {
             tabPanels[id]?.close()
             tabPanels[id] = nil
         }
+    }
+
+    func persistGroupsAfterPanelMove() {
+        groupStore.save(groupManager.persistableGroups())
     }
 
     private func handleAXEvent(pid: pid_t, element: AXUIElement, notification: String) {
