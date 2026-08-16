@@ -136,8 +136,10 @@ final class ApplicationController: NSObject, ObservableObject {
             showOnboarding()
         } else if groupManager.groups.isEmpty {
             showWindowPicker(addingTo: nil)
-        } else {
-            showSettings()
+        } else if let group = groupManager.preferredGroup() {
+            groupManager.restoreGroup(group.id)
+            realignPanels(refreshTabs: true)
+            menuBar?.reload()
         }
     }
 
@@ -158,12 +160,12 @@ final class ApplicationController: NSObject, ObservableObject {
         pickerTargetGroupID = groupID
         groupManager.refreshFromAccessibility()
         let view = WindowPickerView(app: self)
-        present(window: &pickerWindow, title: "CursorStack", size: NSSize(width: 420, height: 500), view: AnyView(view))
+        present(window: &pickerWindow, title: "CursorStack", size: NSSize(width: 500, height: 560), view: AnyView(view))
     }
 
     func showSettings() {
         let view = SettingsView(app: self)
-        present(window: &settingsWindow, title: "CursorStack Settings", size: NSSize(width: 560, height: 580), view: AnyView(view))
+        present(window: &settingsWindow, title: "CursorStack Settings", size: NSSize(width: 760, height: 620), view: AnyView(view))
     }
 
     func showInspector() {
@@ -441,7 +443,7 @@ final class ApplicationController: NSObject, ObservableObject {
 
     private func showOnboarding() {
         let view = OnboardingView(app: self)
-        present(window: &onboardingWindow, title: "Welcome to CursorStack", size: NSSize(width: 480, height: 500), view: AnyView(view))
+        present(window: &onboardingWindow, title: "Welcome to CursorStack", size: NSSize(width: 540, height: 570), view: AnyView(view))
     }
 
     private func present(window: inout NSWindow?, title: String, size: NSSize, view: AnyView) {
@@ -479,6 +481,10 @@ final class ApplicationController: NSObject, ObservableObject {
     }
 
     @objc private func frontmostChanged() {
+        if let front = NSWorkspace.shared.frontmostApplication,
+           discovery.isCursor(front) {
+            groupManager.refreshFromAccessibility()
+        }
         realignPanels()
     }
 

@@ -29,6 +29,7 @@
 		8A8543CC2EF04E0D9FA51CC3 /* WindowMatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0111556DA884AF0F1AFCEA4 /* WindowMatcher.swift */; };
 		94669CBD753042BE33681087 /* LaunchAtLoginManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F053CB4C8F5D88A0F9FBDC0D /* LaunchAtLoginManager.swift */; };
 		94D5AC272690BFDA8D373DD8 /* GroupTabPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5E5BC558FEDC273B7BB9FBB /* GroupTabPanelController.swift */; };
+		95BE3624627AD9201F5C3AAD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C2028A1CAA3E078B53562B9D /* Assets.xcassets */; };
 		98D95676CDB579C4650269B7 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA33A1CBDEE9C0FC9424DC11 /* main.swift */; };
 		9CD454E7BFC3C5D6CAC00F13 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EF43CCACF7C05E8C4F050C5 /* Models.swift */; };
 		A6EE7E723304BA1BEDD6C61A /* WindowPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA93F0FE5D4BC6A98DDF9DED /* WindowPickerView.swift */; };
@@ -85,6 +86,7 @@
 		AEE45FF35F7D641669E924D6 /* AttentionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttentionCoordinator.swift; sourceTree = "<group>"; };
 		BA93F0FE5D4BC6A98DDF9DED /* WindowPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowPickerView.swift; sourceTree = "<group>"; };
 		BD8CF37849C5C72C5FDB0BF1 /* AppSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsStore.swift; sourceTree = "<group>"; };
+		C2028A1CAA3E078B53562B9D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CA33A1CBDEE9C0FC9424DC11 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		CD8F48F36EDE864BD63ADBDA /* FocusCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusCoordinator.swift; sourceTree = "<group>"; };
 		CE644E02EC835854B78448DB /* AXHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AXHelpers.swift; sourceTree = "<group>"; };
@@ -172,6 +174,7 @@
 		84F7C9807DBB7949EFF7C9CC /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				C2028A1CAA3E078B53562B9D /* Assets.xcassets */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -280,6 +283,7 @@
 			buildConfigurationList = 3B42D010FF3982C0CEC3DC8E /* Build configuration list for PBXNativeTarget "CursorStack" */;
 			buildPhases = (
 				5C611CA2BE50815E16C57E04 /* Sources */,
+				692035DEF151158633467D8F /* Resources */,
 			);
 			buildRules = (
 			);
@@ -330,6 +334,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		692035DEF151158633467D8F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				95BE3624627AD9201F5C3AAD /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		5C611CA2BE50815E16C57E04 /* Sources */ = {

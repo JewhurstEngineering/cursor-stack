@@ -10,18 +10,51 @@ struct WindowPickerView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            BrandWordmark(height: 40)
+        VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 5) {
+                BrandNameLogo(width: 210, style: .color)
+                Text("Turn Cursor windows into one tabbed stack")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
 
-            Text(app.pickerTargetGroupID == nil ? "Create a group" : "Add windows")
-                .font(.title3.weight(.semibold))
+            VStack(alignment: .leading, spacing: 4) {
+                Text(app.pickerTargetGroupID == nil ? "Create a stack" : "Add windows")
+                    .font(.system(size: 20, weight: .bold))
+                Text(
+                    app.pickerTargetGroupID == nil
+                        ? "Choose the Cursor projects you want to switch between as tabs."
+                        : "Choose more Cursor projects for this stack."
+                )
+                .font(.system(size: 13))
+                .foregroundStyle(.secondary)
+            }
 
             if windows.isEmpty {
-                Text("No ungrouped Cursor windows found.")
-                    .foregroundStyle(.secondary)
+                VStack(spacing: 10) {
+                    Image(systemName: "macwindow.badge.plus")
+                        .font(.system(size: 28, weight: .medium))
+                        .foregroundStyle(Color.accentColor)
+                    Text("No available Cursor windows")
+                        .font(.system(size: 14, weight: .semibold))
+                    Text("Open another project in a new Cursor window, then come back and re-scan.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 280)
+                    Button("Re-scan") {
+                        app.groupManager.refreshFromAccessibility()
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
+                .background(Color(nsColor: .controlBackgroundColor))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(Color(nsColor: .separatorColor), lineWidth: 1)
+                )
             } else {
-                Text("Found \(windows.count) Cursor window\(windows.count == 1 ? "" : "s")")
-                    .foregroundStyle(.secondary)
                 List(windows, id: \.id) { window in
                     Toggle(isOn: binding(for: window.id)) {
                         VStack(alignment: .leading) {
@@ -34,11 +67,17 @@ struct WindowPickerView: View {
                     }
                 }
                 .listStyle(.inset)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
 
             if app.pickerTargetGroupID == nil {
-                TextField("Group name", text: $groupName)
-                    .textFieldStyle(.roundedBorder)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Stack name")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                    TextField("For example: Client work", text: $groupName)
+                        .textFieldStyle(.roundedBorder)
+                }
             }
 
             HStack {
@@ -53,7 +92,8 @@ struct WindowPickerView: View {
                 .disabled(selected.isEmpty)
             }
         }
-        .padding(20)
+        .padding(24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onAppear {
             selected = Set(windows.map(\.id))
             if let first = windows.first {

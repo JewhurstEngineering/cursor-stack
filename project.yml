@@ -27,8 +27,7 @@ targets:
     sources:
       - path: CursorStack
         excludes:
-          - "Resources/Assets.xcassets"
-    resources:
+          - Resources/Assets.xcassets
       - path: CursorStack/Resources/Assets.xcassets
     info:
       path: CursorStack/Info.plist

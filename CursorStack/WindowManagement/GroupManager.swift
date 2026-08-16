@@ -268,6 +268,19 @@ final class GroupManager: ObservableObject {
         objectWillChange.send()
     }
 
+    func restoreGroup(_ groupID: UUID) {
+        guard let group = groups.first(where: { $0.id == groupID }) else { return }
+        for window in group.liveWindows {
+            try? accessibility.deminimize(window.snapshot)
+            window.isMinimized = false
+        }
+        group.isPaused = false
+        group.isFullScreenPaused = false
+        applyCanonicalFrame(in: group, raising: group.activeWindow)
+        group.objectWillChange.send()
+        objectWillChange.send()
+    }
+
     func closeActiveWindow(in groupID: UUID) {
         guard let group = groups.first(where: { $0.id == groupID }),
               let active = group.activeWindow else { return }

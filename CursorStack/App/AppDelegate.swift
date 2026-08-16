@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     static weak var shared: AppDelegate?
     private(set) var controller: ApplicationController!
 
@@ -46,6 +46,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    @objc func activateWindowFromGroupMenu(_ sender: NSMenuItem) {
+        guard let target = sender.representedObject as? MenuTarget else { return }
+        MainActor.assumeIsolated {
+            controller?.activate(windowID: target.windowID, in: target.groupID)
+        }
+    }
+
+    @objc func addWindowsToCurrentStack() {
+        MainActor.assumeIsolated {
+            guard let group = controller?.groupManager.preferredGroup() else { return }
+            controller?.showWindowPicker(addingTo: group.id)
+        }
+    }
+
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        guard menu.title == "Group" else { return }
+        MainActor.assumeIsolated {
+            populateGroupMenu(menu)
+        }
+    }
+
     private func buildMenu() {
         let mainMenu = NSMenu()
 
@@ -66,11 +87,137 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let groupItem = NSMenuItem()
         mainMenu.addItem(groupItem)
         let groupMenu = NSMenu(title: "Group")
-        let manage = NSMenuItem(title: "Manage Windows…", action: #selector(showWindowPicker), keyEquivalent: "n")
-        manage.target = self
-        groupMenu.addItem(manage)
+        groupMenu.delegate = self
+        groupMenu.addItem(disabledItem("Loading stacks…"))
         groupItem.submenu = groupMenu
 
+        let settingsRootItem = NSMenuItem()
+        mainMenu.addItem(settingsRootItem)
+        let settingsMenu = NSMenu(title: "Settings")
+        let openSettings = NSMenuItem(
+            title: "Open Settings…",
+            action: #selector(showSettings),
+            keyEquivalent: ","
+        )
+        openSettings.target = self
+        settingsMenu.addItem(openSettings)
+        settingsRootItem.submenu = settingsMenu
+
         NSApp.mainMenu = mainMenu
+    }
+
+    @MainActor
+    private func populateGroupMenu(_ menu: NSMenu) {
+        menu.removeAllItems()
+        let groups = controller?.groupManager.groups ?? []
+        let current = controller?.groupManager.preferredGroup()
+
+        let newStack = NSMenuItem(
+            title: "New Stack…",
+            action: #selector(showWindowPicker),
+            keyEquivalent: "n"
+        )
+        newStack.target = self
+        newStack.image = NSImage(
+            systemSymbolName: "plus.rectangle.on.rectangle",
+            accessibilityDescription: nil
+        )
+        menu.addItem(newStack)
+        menu.addItem(.separator())
+
+        if let current {
+            menu.addItem(sectionHeader("Current Stack"))
+            append(group: current, to: menu)
+
+            let others = groups.filter { $0.id != current.id }
+            if !others.isEmpty {
+                menu.addItem(.separator())
+                menu.addItem(sectionHeader("Other Stacks"))
+                for group in others {
+                    append(group: group, to: menu)
+                }
+            }
+
+            menu.addItem(.separator())
+            let addWindows = NSMenuItem(
+                title: "Add Windows to \(current.name)…",
+                action: #selector(addWindowsToCurrentStack),
+                keyEquivalent: ""
+            )
+            addWindows.target = self
+            menu.addItem(addWindows)
+        } else {
+            menu.addItem(disabledItem("No current stack"))
+        }
+    }
+
+    @MainActor
+    private func append(group: RuntimeWindowGroup, to menu: NSMenu) {
+        let groupItem: NSMenuItem
+        if let active = group.activeWindow {
+            groupItem = NSMenuItem(
+                title: group.name,
+                action: #selector(activateWindowFromGroupMenu(_:)),
+                keyEquivalent: ""
+            )
+            groupItem.target = self
+            groupItem.representedObject = MenuTarget(
+                groupID: group.id,
+                windowID: active.id
+            )
+        } else {
+            groupItem = disabledItem(group.name)
+        }
+        groupItem.image = NSImage(
+            systemSymbolName: "rectangle.stack.fill",
+            accessibilityDescription: nil
+        )
+        menu.addItem(groupItem)
+
+        for window in group.windows {
+            let title = window.attentionState.showsTabDot
+                ? "● \(window.displayName)"
+                : window.displayName
+            let item = NSMenuItem(
+                title: title,
+                action: #selector(activateWindowFromGroupMenu(_:)),
+                keyEquivalent: ""
+            )
+            item.target = self
+            item.representedObject = MenuTarget(
+                groupID: group.id,
+                windowID: window.id
+            )
+            item.indentationLevel = 1
+            item.state = window.id == group.activeWindowID ? .on : .off
+            item.isEnabled = !window.isUnavailable
+            menu.addItem(item)
+        }
+
+        for unresolved in group.unresolved {
+            let item = disabledItem(
+                "\(unresolved.alias ?? unresolved.projectDisplayName) — reconnect needed"
+            )
+            item.indentationLevel = 1
+            menu.addItem(item)
+        }
+    }
+
+    private func sectionHeader(_ title: String) -> NSMenuItem {
+        let item = disabledItem(title.uppercased())
+        item.attributedTitle = NSAttributedString(
+            string: title.uppercased(),
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 10, weight: .semibold),
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]
+        )
+        return item
+    }
+
+    private func disabledItem(_ title: String) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        item.isEnabled = false
+        return item
     }
 }

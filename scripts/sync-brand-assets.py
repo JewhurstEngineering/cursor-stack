@@ -13,7 +13,7 @@ SOURCE = ROOT / "images"
 ASSETS = ROOT / "CursorStack" / "Resources" / "Assets.xcassets"
 APP_ICON = ASSETS / "AppIcon.appiconset"
 
-NAVY = (22, 33, 48, 255)
+CHARCOAL = (24, 24, 27, 255)
 
 APP_ICON_SIZES = [
     ("icon_16.png", 16),
@@ -35,8 +35,8 @@ def resize(image: Image.Image, size: int) -> Image.Image:
 
 
 def app_icon_source() -> Image.Image:
-    mark = Image.open(SOURCE / "cursorstack-logo-square-color.png").convert("RGBA")
-    canvas = Image.new("RGBA", mark.size, NAVY)
+    mark = Image.open(SOURCE / "cursorstack-logo-square-mono.png").convert("RGBA")
+    canvas = Image.new("RGBA", mark.size, CHARCOAL)
     canvas.alpha_composite(mark)
     return canvas
 
@@ -107,6 +107,10 @@ def main() -> None:
         (512, 512), Image.Resampling.LANCZOS
     ).save(imageset("LogoSquareColor", "LogoSquareColor.png"), "PNG")
 
+    Image.open(SOURCE / "cursorstack-logo-square-mono.png").convert("RGBA").resize(
+        (512, 512), Image.Resampling.LANCZOS
+    ).save(imageset("LogoSquareMono", "LogoSquareMono.png"), "PNG")
+
     for asset, source_name in [
         ("LogoFullColor", "cursorstack-logo-full-color.png"),
         ("LogoFullWhite", "cursorstack-logo-full-white.png"),
@@ -119,7 +123,20 @@ def main() -> None:
             imageset(asset, f"{asset}.png"), "PNG"
         )
 
-    menu = fit_square(crop_to_opaque(SOURCE / "cursorstack-logo-square-white.png", 0.08)).resize(
+    for asset, source_name in [
+        ("LogoNameColor", "cursorstack-logo-name-color.png"),
+        ("LogoNameMono", "cursorstack-logo-name-mono.png"),
+        ("LogoNameWhite", "cursorstack-logo-name-white.png"),
+        ("LogoNameBlack", "cursorstack-logo-name-black.png"),
+    ]:
+        name = crop_to_opaque(SOURCE / source_name, padding_ratio=0.02)
+        width = 900
+        height = max(1, round(name.height * (width / name.width)))
+        name.resize((width, height), Image.Resampling.LANCZOS).save(
+            imageset(asset, f"{asset}.png"), "PNG"
+        )
+
+    menu = fit_square(crop_to_opaque(SOURCE / "cursorstack-logo-square-mono.png", 0.08)).resize(
         (36, 36), Image.Resampling.LANCZOS
     )
     menu.save(imageset("MenuBarIcon", "MenuBarIcon.png", template=True), "PNG")

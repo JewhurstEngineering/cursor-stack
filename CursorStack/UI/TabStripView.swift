@@ -14,6 +14,14 @@ struct TabStripView: View {
                 )
                 .padding(.leading, 8)
 
+                StackBarBrandMark()
+                    .frame(width: 98)
+                    .help("CursorStack")
+
+                Rectangle()
+                    .fill(Color(nsColor: .separatorColor))
+                    .frame(width: 1, height: 18)
+
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 2) {
                         ForEach(Array(group.windows.enumerated()), id: \.element.id) { index, window in
@@ -82,16 +90,49 @@ struct TabStripView: View {
                     Button("Show All Windows") { app.groupManager.showAllWindows(group.id) }
                     Button("Ungroup All", role: .destructive) { app.groupManager.ungroupAll(group.id) }
                 } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Color(nsColor: .labelColor))
-                        .frame(width: 22, height: 22)
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus")
+                        Text("Add")
+                    }
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color(nsColor: .labelColor))
+                    .frame(height: 24)
+                    .padding(.horizontal, 6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(Color(nsColor: .controlBackgroundColor).opacity(0.75))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .stroke(Color(nsColor: .separatorColor).opacity(0.7), lineWidth: 1)
+                    )
+                    .fixedSize()
                         .contentShape(Rectangle())
                 }
                 .menuStyle(.borderlessButton)
-                .frame(width: 28)
+                .fixedSize()
+                .help("Add Cursor windows or manage this stack")
+
+                Button {
+                    app.showSettings()
+                } label: {
+                    Label("Settings", systemImage: "gearshape")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Color(nsColor: .labelColor))
+                        .frame(height: 24)
+                        .padding(.horizontal, 7)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(Color(nsColor: .controlBackgroundColor).opacity(0.75))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .stroke(Color(nsColor: .separatorColor).opacity(0.7), lineWidth: 1)
+                        )
+                }
+                .buttonStyle(.plain)
+                .help("Open CursorStack Settings")
                 .padding(.trailing, 8)
-                .help("Add window or group actions")
             }
             .onDrop(of: [.text], isTargeted: nil) { providers in
                 app.handleTabDrop(providers: providers, onto: group.windows.last?.id, in: group.id)

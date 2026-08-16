@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject var app: ApplicationController
     @ObservedObject private var settingsStore: AppSettingsStore
+    @State private var selection: SettingsSection = .general
 
     init(app: ApplicationController) {
         self.app = app
@@ -10,23 +11,96 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        TabView {
-            general.tabItem { Label("General", systemImage: "gearshape") }
-            tabs.tabItem { Label("Tabs", systemImage: "rectangle.split.3x1") }
-            shortcuts.tabItem { Label("Shortcuts", systemImage: "keyboard") }
-            attention.tabItem { Label("Attention", systemImage: "bell") }
-            advanced.tabItem { Label("Advanced", systemImage: "wrench.and.screwdriver") }
-        }
-        .padding(20)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                BrandWordmark(height: 36)
-                Spacer()
+        HStack(spacing: 0) {
+            sidebar
+                .frame(width: 196)
+
+            Divider()
+
+            ScrollView {
+                detail
+                    .padding(.horizontal, 30)
+                    .padding(.vertical, 26)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-            .padding(.bottom, 4)
+            .background(Color(nsColor: .windowBackgroundColor))
+        }
+        .frame(minWidth: 720, minHeight: 560)
+    }
+
+    private var sidebar: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 5) {
+                BrandNameLogo(width: 146, style: .color)
+                Text("Window groups for Cursor")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 12)
+
+            VStack(spacing: 4) {
+                ForEach(SettingsSection.allCases) { section in
+                    Button {
+                        selection = section
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: section.symbol)
+                                .font(.system(size: 14, weight: .semibold))
+                                .frame(width: 18)
+                            Text(section.title)
+                                .font(.system(size: 13, weight: .medium))
+                            Spacer()
+                        }
+                        .foregroundStyle(selection == section ? Color.accentColor : Color.primary)
+                        .padding(.horizontal, 11)
+                        .frame(height: 34)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(selection == section ? Color.accentColor.opacity(0.13) : .clear)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            Spacer()
+
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(app.permissionGranted ? Color.green : Color.orange)
+                    .frame(width: 7, height: 7)
+                Text(app.permissionGranted ? "Accessibility connected" : "Permission needed")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 14)
+        }
+        .padding(.vertical, 18)
+        .padding(.horizontal, 8)
+        .background(.ultraThinMaterial)
+    }
+
+    @ViewBuilder
+    private var detail: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            SettingsPageHeader(
+                title: selection.title,
+                detail: selection.detail,
+                symbol: selection.symbol
+            )
+
+            switch selection {
+            case .general:
+                general
+            case .tabs:
+                tabs
+            case .shortcuts:
+                shortcuts
+            case .attention:
+                attention
+            case .advanced:
+                advanced
+            }
         }
     }
 
@@ -40,79 +114,414 @@ struct SettingsView: View {
         )
     }
 
+    private var tabLabelStyle: Binding<TabLabelStyle> {
+        Binding(
+            get: {
+                settingsStore.settings.showFullTitle ? .fullTitle : .projectName
+            },
+            set: { style in
+                var updated = settingsStore.settings
+                updated.showProjectName = true
+                updated.showFullTitle = style == .fullTitle
+                settingsStore.settings = updated
+                app.applySettingsSideEffects()
+            }
+        )
+    }
+
     private var general: some View {
-        Form {
-            Toggle("Launch CursorStack at login", isOn: settings.launchAtLogin)
-            Toggle("Show menu bar icon", isOn: settings.showMenuBarIcon)
-            Toggle("Show Dock icon", isOn: settings.showDockIcon)
-            Toggle("Automatically add new Cursor windows to the current group", isOn: settings.autoAddNewWindows)
+        VStack(spacing: 16) {
+            SettingsCard(title: "Startup", symbol: "power") {
+                SettingsToggleRow(
+                    title: "Open at login",
+                    detail: "Starts CursorStack quietly when you sign in.",
+                    isOn: settings.launchAtLogin
+                )
+            }
+
+            SettingsCard(title: "Where CursorStack appears", symbol: "macwindow") {
+                SettingsToggleRow(
+                    title: "Menu bar",
+                    detail: "Quick access to groups, windows, and settings.",
+                    isOn: settings.showMenuBarIcon
+                )
+                Divider()
+                SettingsToggleRow(
+                    title: "Dock and app switcher",
+                    detail: "Shows CursorStack alongside your other apps.",
+                    isOn: settings.showDockIcon
+                )
+            }
+
+            SettingsCard(title: "New Cursor windows", symbol: "plus.rectangle.on.rectangle") {
+                SettingsToggleRow(
+                    title: "Add to the current stack automatically",
+                    detail: "New Cursor windows join the stack you are currently using.",
+                    isOn: settings.autoAddNewWindows
+                )
+            }
         }
     }
 
     private var tabs: some View {
-        Form {
-            Picker("Tab height", selection: settings.tabHeight) {
-                Text("Compact").tag(CGFloat(35))
-                Text("Regular").tag(CGFloat(36))
-                Text("Comfortable").tag(CGFloat(40))
+        VStack(spacing: 16) {
+            SettingsCard(title: "Appearance", symbol: "rectangle.topthird.inset.filled") {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Tab bar height")
+                        .font(.system(size: 13, weight: .semibold))
+                    Picker("Tab bar height", selection: settings.tabHeight) {
+                        Text("Compact").tag(CGFloat(35))
+                        Text("Regular").tag(CGFloat(36))
+                        Text("Roomy").tag(CGFloat(40))
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
+                    Text("The bar replaces Cursor’s title area. Regular is the safest fit.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
-            Text("The strip covers Cursor’s titlebar. Taller than Regular can clip the editor.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Toggle("Project name", isOn: settings.showProjectName)
-            Toggle("Full Cursor window title", isOn: settings.showFullTitle)
+
+            SettingsCard(title: "Tab names", symbol: "textformat") {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Show each tab as")
+                        .font(.system(size: 13, weight: .semibold))
+                    Picker("Tab names", selection: tabLabelStyle) {
+                        ForEach(TabLabelStyle.allCases) { style in
+                            Text(style.title).tag(style)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
+                    Text(tabLabelStyle.wrappedValue.detail)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
     }
 
     private var shortcuts: some View {
-        Form {
-            labeled("Next tab", settings.wrappedValue.nextTabHotKey.displayString)
-            labeled("Previous tab", settings.wrappedValue.previousTabHotKey.displayString)
-            labeled("Tab 1–9", "⌃⌥ 1 … 9")
-            Text("Shortcuts are global while Accessibility is granted.")
+        SettingsCard(title: "Switch tabs from anywhere", symbol: "keyboard") {
+            ShortcutRow(title: "Next tab", shortcut: settingsStore.settings.nextTabHotKey.displayString)
+            Divider()
+            ShortcutRow(title: "Previous tab", shortcut: settingsStore.settings.previousTabHotKey.displayString)
+            Divider()
+            ShortcutRow(title: "Jump to tab 1–9", shortcut: "⌃⌥ 1 … 9")
+            Text("These shortcuts work globally while CursorStack has Accessibility permission.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .padding(.top, 4)
         }
     }
 
     private var attention: some View {
-        Form {
-            Toggle("Detect Cursor attention state", isOn: settings.detectAttention)
-            Toggle("Show tab indicator", isOn: settings.showTabIndicator)
-            Toggle("Send macOS notification", isOn: settings.sendNotifications)
-            Toggle("Play sound", isOn: settings.notificationSound)
-            Toggle("Notify while CursorStack is frontmost", isOn: settings.notifyWhenFrontmost)
-            Toggle("Notify for currently selected tab", isOn: settings.notifyForSelectedTab)
-            Toggle("Enable experimental visual detection", isOn: settings.enableVisualDetection)
-            Text("Attention uses Accessibility first, then window titles. Visual capture is experimental, local-only, and needs Screen Recording. If Cursor does not expose a badge, grouping still works.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+        VStack(spacing: 16) {
+            SettingsCard(title: "Detection", symbol: "sparkle.magnifyingglass") {
+                SettingsToggleRow(
+                    title: "Detect when Cursor needs you",
+                    detail: "Looks for waiting, completed, and error states in each Cursor window.",
+                    isOn: settings.detectAttention
+                )
+                Divider()
+                SettingsToggleRow(
+                    title: "Show a dot on the tab",
+                    detail: "Marks the project that needs attention.",
+                    isOn: settings.showTabIndicator
+                )
+                .disabled(!settingsStore.settings.detectAttention)
+                .opacity(settingsStore.settings.detectAttention ? 1 : 0.45)
+            }
+
+            SettingsCard(title: "Notifications", symbol: "bell.badge") {
+                SettingsToggleRow(
+                    title: "Send a macOS notification",
+                    detail: "Notifies you when a background Cursor project needs attention.",
+                    isOn: settings.sendNotifications
+                )
+                Divider()
+                VStack(spacing: 0) {
+                    SettingsToggleRow(
+                        title: "Play a sound",
+                        detail: "Uses the default macOS notification sound.",
+                        isOn: settings.notificationSound
+                    )
+                    Divider()
+                    SettingsToggleRow(
+                        title: "Notify while CursorStack is active",
+                        detail: "Useful when you are working in a different stack.",
+                        isOn: settings.notifyWhenFrontmost
+                    )
+                    Divider()
+                    SettingsToggleRow(
+                        title: "Notify for the selected tab",
+                        detail: "Also alerts for the project already in front.",
+                        isOn: settings.notifyForSelectedTab
+                    )
+                }
+                .disabled(!settingsStore.settings.sendNotifications)
+                .opacity(settingsStore.settings.sendNotifications ? 1 : 0.45)
+            }
+
+            SettingsCard(title: "Experimental fallback", symbol: "viewfinder") {
+                SettingsToggleRow(
+                    title: "Use visual detection",
+                    detail: "Checks a small local screenshot only when Accessibility cannot see Cursor’s status. Requires Screen Recording permission.",
+                    isOn: settings.enableVisualDetection
+                )
+                .disabled(!settingsStore.settings.detectAttention)
+                .opacity(settingsStore.settings.detectAttention ? 1 : 0.45)
+            }
         }
     }
 
     private var advanced: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Button("Inspect Cursor Accessibility Tree") { app.showInspector() }
-            Button("Re-scan Cursor Windows") { app.groupManager.refreshFromAccessibility() }
-            Button("Window Lab") { app.showWindowLab() }
-            Button("Reset Saved Groups", role: .destructive) { app.resetSavedGroups() }
-            Toggle("Debug logging", isOn: settings.debugLogging)
+        VStack(spacing: 16) {
             if !app.permissionGranted {
-                Text("CursorStack no longer has Accessibility permission.")
-                    .foregroundStyle(.red)
-                Button("Open Privacy Settings") { app.requestAccessibility() }
+                SettingsCard(title: "Accessibility permission", symbol: "exclamationmark.triangle") {
+                    SettingsActionRow(
+                        title: "CursorStack cannot manage windows",
+                        detail: "Reconnect Accessibility permission to restore grouping and switching.",
+                        buttonTitle: "Open Privacy Settings",
+                        action: app.requestAccessibility
+                    )
+                }
             }
-            Spacer()
+
+            SettingsCard(title: "Diagnostics", symbol: "stethoscope") {
+                SettingsActionRow(
+                    title: "Re-scan Cursor windows",
+                    detail: "Refreshes the list when an open project is missing.",
+                    buttonTitle: "Re-scan"
+                ) {
+                    app.groupManager.refreshFromAccessibility()
+                }
+                Divider()
+                SettingsActionRow(
+                    title: "Window Lab",
+                    detail: "Tests focus, movement, and sizing against live Cursor windows.",
+                    buttonTitle: "Open"
+                ) {
+                    app.showWindowLab()
+                }
+                Divider()
+                SettingsActionRow(
+                    title: "Accessibility inspector",
+                    detail: "Shows the window information Cursor exposes to macOS.",
+                    buttonTitle: "Open"
+                ) {
+                    app.showInspector()
+                }
+                Divider()
+                SettingsToggleRow(
+                    title: "Debug logging",
+                    detail: "Writes detailed window-management events to the macOS log.",
+                    isOn: settings.debugLogging
+                )
+            }
+
+            SettingsCard(title: "Saved data", symbol: "externaldrive") {
+                HStack(alignment: .center, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Reset saved groups")
+                            .font(.system(size: 13, weight: .semibold))
+                        Text("Forgets every stack. Your Cursor windows and projects stay open.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button("Reset…", role: .destructive) {
+                        app.resetSavedGroups()
+                    }
+                }
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
+    }
+}
+
+private enum SettingsSection: String, CaseIterable, Identifiable {
+    case general
+    case tabs
+    case shortcuts
+    case attention
+    case advanced
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .general: "General"
+        case .tabs: "Tabs"
+        case .shortcuts: "Shortcuts"
+        case .attention: "Attention"
+        case .advanced: "Advanced"
+        }
     }
 
-    private func labeled(_ title: String, _ value: String) -> some View {
+    var detail: String {
+        switch self {
+        case .general: "Choose when CursorStack runs and where it appears."
+        case .tabs: "Control how your Cursor projects look in the stack bar."
+        case .shortcuts: "Move between projects without reaching for the mouse."
+        case .attention: "Decide how CursorStack tells you a project is waiting."
+        case .advanced: "Troubleshoot window detection and manage saved data."
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .general: "gearshape"
+        case .tabs: "rectangle.split.3x1"
+        case .shortcuts: "keyboard"
+        case .attention: "bell"
+        case .advanced: "wrench.and.screwdriver"
+        }
+    }
+}
+
+private enum TabLabelStyle: String, CaseIterable, Identifiable {
+    case projectName
+    case fullTitle
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .projectName: "Project name"
+        case .fullTitle: "Full window title"
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .projectName: "Short labels such as “cursor-stack” or “budmath”."
+        case .fullTitle: "Includes Cursor’s active file name and project name."
+        }
+    }
+}
+
+private struct SettingsPageHeader: View {
+    let title: String
+    let detail: String
+    let symbol: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 13) {
+            Image(systemName: symbol)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(Color.accentColor)
+                .frame(width: 36, height: 36)
+                .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 9))
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.system(size: 22, weight: .bold))
+                Text(detail)
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+private struct SettingsCard<Content: View>: View {
+    let title: String
+    let symbol: String
+    @ViewBuilder let content: Content
+
+    init(title: String, symbol: String, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.symbol = symbol
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 13) {
+            Label(title, systemImage: symbol)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+
+            VStack(alignment: .leading, spacing: 12) {
+                content
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(nsColor: .controlBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color(nsColor: .separatorColor).opacity(0.65), lineWidth: 1)
+        )
+    }
+}
+
+private struct SettingsToggleRow: View {
+    let title: String
+    let detail: String
+    @Binding var isOn: Bool
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 18) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.system(size: 13, weight: .semibold))
+                Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Toggle("", isOn: $isOn)
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .fixedSize()
+        }
+    }
+}
+
+private struct SettingsActionRow: View {
+    let title: String
+    let detail: String
+    let buttonTitle: String
+    let action: () -> Void
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 16) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.system(size: 13, weight: .semibold))
+                Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Button(buttonTitle, action: action)
+        }
+    }
+}
+
+private struct ShortcutRow: View {
+    let title: String
+    let shortcut: String
+
+    var body: some View {
         HStack {
             Text(title)
+                .font(.system(size: 13, weight: .semibold))
             Spacer()
-            Text(value).foregroundStyle(.secondary).monospaced()
+            Text(shortcut)
+                .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                .padding(.horizontal, 9)
+                .padding(.vertical, 5)
+                .background(Color(nsColor: .windowBackgroundColor))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(Color(nsColor: .separatorColor), lineWidth: 1)
+                )
         }
     }
 }
