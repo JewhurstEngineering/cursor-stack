@@ -54,28 +54,63 @@ final class WindowMatcherTests: XCTestCase {
 }
 
 final class ScreenCoordinateConverterTests: XCTestCase {
-    func testTabPanelSitsOnTopAndClamps() {
+    func testConvertsAXTopLeftCoordinatesToCocoaBottomLeftCoordinates() {
+        let axFrame = CGRect(x: 0, y: 33, width: 1512, height: 949)
+        let cocoaFrame = ScreenCoordinateConverter.cocoaRect(
+            fromAX: axFrame,
+            primaryScreenMaxY: 982
+        )
+
+        XCTAssertEqual(cocoaFrame, CGRect(x: 0, y: 0, width: 1512, height: 949))
+        XCTAssertEqual(
+            ScreenCoordinateConverter.axRect(
+                fromCocoa: cocoaFrame,
+                primaryScreenMaxY: 982
+            ),
+            axFrame
+        )
+    }
+
+    func testRecoversFrameFromDisconnectedDisplay() {
+        let stale = CGRect(x: -1756, y: -144, width: 1720, height: 1410)
+        let visible = CGRect(x: 0, y: 0, width: 1512, height: 949)
+
+        XCTAssertEqual(
+            ScreenCoordinateConverter.visibleFraction(of: stale, in: [visible]),
+            0
+        )
+        let recovered = ScreenCoordinateConverter.recoveredFrame(
+            stale,
+            visibleFrames: [visible]
+        )
+        XCTAssertTrue(visible.contains(recovered))
+        XCTAssertEqual(recovered.size, visible.size)
+    }
+
+    func testTabPanelOverlaysTitlebar() {
         let window = CGRect(x: 100, y: 200, width: 800, height: 600)
         let visible = CGRect(x: 0, y: 0, width: 1440, height: 900)
         let panel = ScreenCoordinateConverter.tabPanelFrame(windowFrame: window, height: 36, visibleFrame: visible)
         XCTAssertEqual(panel.minX, 100)
         XCTAssertEqual(panel.width, 800)
-        XCTAssertEqual(panel.minY, 800)
+        XCTAssertEqual(panel.minY, 764)
+        XCTAssertEqual(panel.maxY, 800)
         XCTAssertEqual(panel.height, 36)
     }
 
-    func testTabPanelClampsToMenuBar() {
-        let window = CGRect(x: 0, y: 40, width: 1000, height: 860)
-        let visible = CGRect(x: 0, y: 0, width: 1000, height: 878)
-        let panel = ScreenCoordinateConverter.tabPanelFrame(windowFrame: window, height: 36, visibleFrame: visible)
-        XCTAssertLessThanOrEqual(panel.maxY, visible.maxY)
-    }
-
-    func testMaximizeLeavesRoomForTabs() {
+    func testMaximizeFillsWorkAreaBecauseChromeOverlays() {
         let visible = CGRect(x: 0, y: 0, width: 1512, height: 944)
         let content = ScreenCoordinateConverter.maximizedContentFrame(visibleFrame: visible, tabHeight: 36)
-        XCTAssertEqual(content.height, 908)
+        XCTAssertEqual(content.height, 944)
         XCTAssertEqual(content.width, 1512)
+    }
+
+    func testWindowFollowsOverlayPanel() {
+        let panel = CGRect(x: 100, y: 764, width: 800, height: 36)
+        let window = ScreenCoordinateConverter.windowFrame(matchingTabPanel: panel, windowHeight: 600)
+        XCTAssertEqual(window.minX, 100)
+        XCTAssertEqual(window.maxY, 800)
+        XCTAssertEqual(window.height, 600)
     }
 
     func testApproximateEquality() {

@@ -31,6 +31,13 @@ struct InspectorView: View {
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString(dump, forType: .string)
                     }
+                    if let selectedID, let window = windows.first(where: { $0.id == selectedID }) {
+                        Text(window.attentionState.rawValue)
+                            .font(.caption.monospaced())
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(Color.accentColor.opacity(0.2), in: Capsule())
+                    }
                     Spacer()
                 }
                 ScrollView {

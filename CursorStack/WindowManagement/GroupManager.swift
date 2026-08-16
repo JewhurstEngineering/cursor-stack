@@ -19,8 +19,9 @@ final class GroupManager: ObservableObject {
 
     private let accessibility: AccessibilityService
     private let discovery: CursorDiscoveryService
-    private let resizeDebouncer = Debouncer(delay: 0.03)
+    private let persistDebouncer = Debouncer(delay: 0.4)
     private var knownElementTokens = Set<UInt>()
+    private var consecutiveMisses: [UUID: Int] = [:]
 
     init(accessibility: AccessibilityService, discovery: CursorDiscoveryService) {
         self.accessibility = accessibility
@@ -68,6 +69,7 @@ final class GroupManager: ObservableObject {
             let liveTuples = remaining.map { (title: $0.title, projectDisplayName: $0.projectDisplayName) }
             let assignments = WindowMatcher.match(persisted: record.members, live: liveTuples)
             var members: [ManagedCursorWindow] = []
+            var groupUnresolved: [PersistedWindowReference] = []
 
             for member in record.members {
                 if let index = assignments[member.id] {
@@ -75,8 +77,7 @@ final class GroupManager: ObservableObject {
                     let restored = ManagedCursorWindow(id: member.id, snapshot: window.snapshot, alias: member.alias)
                     members.append(restored)
                 } else {
-                    // Keep an unavailable placeholder so the user can reconnect.
-                    continue
+                    groupUnresolved.append(member)
                 }
             }
 
@@ -84,17 +85,27 @@ final class GroupManager: ObservableObject {
                 members.contains { AXHelpers.equal($0.element, candidate.element) }
             }
 
-            guard !members.isEmpty else { continue }
+            guard !members.isEmpty || !groupUnresolved.isEmpty else { continue }
+            let restoredFrame = safeRestoreFrame(
+                persisted: record.frame.cgRect,
+                liveMembers: members
+            )
             let group = RuntimeWindowGroup(
                 id: record.id,
                 name: record.name,
                 windows: members,
                 activeWindowID: record.activeMemberID,
-                synchronizedFrame: record.frame.cgRect,
+                synchronizedFrame: restoredFrame,
                 isPaused: record.settings.isPaused
             )
+            if let bestLive = bestVisibleLiveWindow(in: members) {
+                group.activeWindowID = bestLive.id
+            }
             groups.append(group)
-            applyCanonicalFrame(in: group, raising: group.activeWindow)
+            group.unresolved = groupUnresolved
+            if !members.isEmpty {
+                applyCanonicalFrame(in: group, raising: group.activeWindow)
+            }
             delegate?.groupManager(self, didCreate: group)
         }
 
@@ -151,6 +162,7 @@ final class GroupManager: ObservableObject {
         window.frame = newFrame
 
         if group.isApplyingSynchronizedFrame { return }
+        if let until = group.suppressAXUntil, Date() < until { return }
 
         let screen = NSScreen.screens.first { $0.frame.intersects(newFrame) } ?? NSScreen.main
         if let screen, ScreenCoordinateConverter.looksFullScreen(newFrame, screenFrame: screen.frame) {
@@ -166,18 +178,30 @@ final class GroupManager: ObservableObject {
             return
         }
 
-        guard window.id == group.activeWindowID else {
-            applyFrameIfNeeded(group.synchronizedFrame, to: window)
+        if window.id != group.activeWindowID,
+           ScreenCoordinateConverter.framesApproximatelyEqual(
+               newFrame,
+               group.synchronizedFrame,
+               tolerance: 3
+           ) {
+            // Delayed AX echo from synchronizing a background member.
             return
         }
 
+        // Only the visible member can be dragged by the user. If focus
+        // notification delivery lags behind the move notification, promote it
+        // instead of forcing it back to the old canonical frame.
+        group.activeWindowID = window.id
         group.synchronizedFrame = newFrame
-        let generation = group.synchronizationGeneration &+ 1
-        group.synchronizationGeneration = generation
-        resizeDebouncer.run { [weak self] in
+        group.isApplyingSynchronizedFrame = true
+        group.suppressAXUntil = Date().addingTimeInterval(0.5)
+        for member in group.liveWindows where member.id != window.id {
+            applyFrameIfNeeded(newFrame, to: member)
+        }
+        group.isApplyingSynchronizedFrame = false
+        persistDebouncer.run { [weak self] in
             guard let self else { return }
-            guard generation == group.synchronizationGeneration else { return }
-            self.synchronizeFrame(newFrame, in: group.id)
+            self.delegate?.groupManagerNeedsPersistence(self)
         }
         group.objectWillChange.send()
     }
@@ -204,7 +228,7 @@ final class GroupManager: ObservableObject {
                 < $1.frame.intersection(group.synchronizedFrame).width * $1.frame.intersection(group.synchronizedFrame).height
         } ?? NSScreen.main
         guard let visible = screen?.visibleFrame else { return }
-        let tabHeight = delegate?.tabHeight ?? 44
+        let tabHeight = delegate?.tabHeight ?? 36
         let content = ScreenCoordinateConverter.maximizedContentFrame(visibleFrame: visible, tabHeight: tabHeight)
         if !ScreenCoordinateConverter.framesApproximatelyEqual(group.synchronizedFrame, content, tolerance: 8) {
             group.frameBeforeMaximize = group.synchronizedFrame
@@ -222,7 +246,7 @@ final class GroupManager: ObservableObject {
             $0.frame.intersection(group.synchronizedFrame).width * $0.frame.intersection(group.synchronizedFrame).height
                 < $1.frame.intersection(group.synchronizedFrame).width * $1.frame.intersection(group.synchronizedFrame).height
         } ?? NSScreen.main
-        let tabHeight = delegate?.tabHeight ?? 44
+        let tabHeight = delegate?.tabHeight ?? 36
         if let visible = screen?.visibleFrame {
             let maximized = ScreenCoordinateConverter.maximizedContentFrame(visibleFrame: visible, tabHeight: tabHeight)
             if ScreenCoordinateConverter.framesApproximatelyEqual(group.synchronizedFrame, maximized, tolerance: 8),
@@ -254,11 +278,9 @@ final class GroupManager: ObservableObject {
         guard let group = groups.first(where: { $0.id == groupID }) else { return }
         guard !group.isApplyingSynchronizedFrame else { return }
         let height = max(group.synchronizedFrame.height, 200)
-        let newFrame = CGRect(
-            x: panelFrame.minX,
-            y: panelFrame.minY - height,
-            width: panelFrame.width,
-            height: height
+        let newFrame = ScreenCoordinateConverter.windowFrame(
+            matchingTabPanel: panelFrame,
+            windowHeight: height
         )
         group.synchronizedFrame = newFrame
         applyCanonicalFrame(in: group, raising: nil)
@@ -276,6 +298,44 @@ final class GroupManager: ObservableObject {
         window.alias = alias
         window.objectWillChange.send()
         delegate?.groupManagerNeedsPersistence(self)
+    }
+
+    func moveWindow(_ windowID: UUID, from sourceGroupID: UUID, to destinationGroupID: UUID, at index: Int) {
+        guard sourceGroupID != destinationGroupID else {
+            reorder(in: destinationGroupID, moving: windowID, to: index)
+            return
+        }
+        guard let source = groups.first(where: { $0.id == sourceGroupID }),
+              let destination = groups.first(where: { $0.id == destinationGroupID }),
+              let windowIndex = source.windows.firstIndex(where: { $0.id == windowID }) else { return }
+        let window = source.windows.remove(at: windowIndex)
+        if source.windows.isEmpty {
+            removeGroup(sourceGroupID)
+        } else if source.activeWindowID == windowID {
+            source.activeWindowID = source.liveWindows.first?.id
+            source.objectWillChange.send()
+        }
+        let clamped = max(0, min(index, destination.windows.count))
+        destination.windows.insert(window, at: clamped)
+        applyFrameIfNeeded(destination.synchronizedFrame, to: window)
+        destination.objectWillChange.send()
+        delegate?.groupManagerNeedsPersistence(self)
+        objectWillChange.send()
+    }
+
+    func reconnect(persisted: PersistedWindowReference, to window: ManagedCursorWindow, in groupID: UUID) {
+        guard let group = groups.first(where: { $0.id == groupID }) else { return }
+        ungroupedWindows.removeAll { $0.id == window.id }
+        groups.forEach { other in
+            other.windows.removeAll { $0.id == window.id }
+        }
+        let restored = ManagedCursorWindow(id: persisted.id, snapshot: window.snapshot, alias: persisted.alias)
+        group.windows.append(restored)
+        group.unresolved.removeAll { $0.id == persisted.id }
+        applyFrameIfNeeded(group.synchronizedFrame, to: restored)
+        group.objectWillChange.send()
+        delegate?.groupManagerNeedsPersistence(self)
+        objectWillChange.send()
     }
 
     func reorder(in groupID: UUID, moving windowID: UUID, to index: Int) {
@@ -392,8 +452,14 @@ final class GroupManager: ObservableObject {
         for window in allManagedWindows {
             if let index = unmatched.firstIndex(where: { AXHelpers.equal($0.element, window.element) }) {
                 window.apply(unmatched.remove(at: index))
+                consecutiveMisses[window.id] = 0
             } else if !window.isClosed {
+                let misses = (consecutiveMisses[window.id] ?? 0) + 1
+                consecutiveMisses[window.id] = misses
                 window.isUnavailable = true
+                if misses >= 3 {
+                    markClosed(window)
+                }
             }
         }
 
@@ -404,15 +470,6 @@ final class GroupManager: ObservableObject {
             let window = ManagedCursorWindow(snapshot: snapshot)
             ungroupedWindows.append(window)
             delegate?.groupManager(self, didDetectNewWindow: window)
-        }
-
-        for group in groups {
-            let closed = group.windows.filter { window in
-                !snapshots.contains { AXHelpers.equal($0.element, window.element) }
-            }
-            for window in closed {
-                markClosed(window)
-            }
         }
 
         objectWillChange.send()
@@ -446,6 +503,8 @@ final class GroupManager: ObservableObject {
     private func markClosed(_ window: ManagedCursorWindow) {
         window.isClosed = true
         window.isUnavailable = true
+        knownElementTokens.remove(CFHash(window.element))
+        consecutiveMisses[window.id] = nil
         guard let group = group(containing: window.id) else {
             ungroupedWindows.removeAll { $0.id == window.id }
             objectWillChange.send()
@@ -473,6 +532,7 @@ final class GroupManager: ObservableObject {
     private func applyCanonicalFrame(in group: RuntimeWindowGroup, raising active: ManagedCursorWindow?) {
         guard !group.isPaused, !group.isFullScreenPaused else { return }
         group.isApplyingSynchronizedFrame = true
+        group.suppressAXUntil = Date().addingTimeInterval(0.5)
         defer { group.isApplyingSynchronizedFrame = false }
         for window in group.liveWindows {
             applyFrameIfNeeded(group.synchronizedFrame, to: window)
@@ -481,6 +541,58 @@ final class GroupManager: ObservableObject {
             FocusCoordinator.activate(window: active, discovery: discovery, accessibility: accessibility)
         }
         group.objectWillChange.send()
+    }
+
+    private func safeRestoreFrame(
+        persisted: CGRect,
+        liveMembers: [ManagedCursorWindow]
+    ) -> CGRect {
+        if let bestLive = bestVisibleLiveWindow(in: liveMembers) {
+            if CSLog.debugEnabled {
+                CSLog.group.info(
+                    "Restore using live frame \(String(describing: bestLive.frame), privacy: .public) instead of persisted \(String(describing: persisted), privacy: .public)"
+                )
+            }
+            return bestLive.frame
+        }
+
+        let visibleFrames = NSScreen.screens.map(\.visibleFrame)
+        let recovered = ScreenCoordinateConverter.recoveredFrame(
+            persisted,
+            visibleFrames: visibleFrames
+        )
+        if CSLog.debugEnabled,
+           !ScreenCoordinateConverter.framesApproximatelyEqual(persisted, recovered) {
+            CSLog.group.info(
+                "Recovered off-screen group frame \(String(describing: persisted), privacy: .public) to \(String(describing: recovered), privacy: .public)"
+            )
+        }
+        return recovered
+    }
+
+    private func bestVisibleLiveWindow(
+        in windows: [ManagedCursorWindow]
+    ) -> ManagedCursorWindow? {
+        let visibleFrames = NSScreen.screens.map(\.visibleFrame)
+        let best = windows.max { lhs, rhs in
+            let lhsScore = ScreenCoordinateConverter.visibleFraction(
+                of: lhs.frame,
+                in: visibleFrames
+            ) + ((lhs.isFocused || lhs.isMain) ? 0.01 : 0)
+            let rhsScore = ScreenCoordinateConverter.visibleFraction(
+                of: rhs.frame,
+                in: visibleFrames
+            ) + ((rhs.isFocused || rhs.isMain) ? 0.01 : 0)
+            return lhsScore < rhsScore
+        }
+        guard let best,
+              ScreenCoordinateConverter.visibleFraction(
+                  of: best.frame,
+                  in: visibleFrames
+              ) >= 0.1 else {
+            return nil
+        }
+        return best
     }
 
     private func applyFrameIfNeeded(_ frame: CGRect, to window: ManagedCursorWindow) {

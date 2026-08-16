@@ -58,10 +58,46 @@ enum AXTreeInspector {
         return collapsed
     }
 
+    static func collectAttentionHints(from element: AXUIElement, maxNodes: Int = 80) -> [String] {
+        var hints: [String] = []
+        var visited = 0
+        scan(element, depth: 0, maxDepth: 7, maxNodes: maxNodes, visited: &visited, into: &hints)
+        return hints
+    }
+
+    private static func scan(
+        _ element: AXUIElement,
+        depth: Int,
+        maxDepth: Int,
+        maxNodes: Int,
+        visited: inout Int,
+        into hints: inout [String]
+    ) {
+        guard visited < maxNodes, depth <= maxDepth else { return }
+        visited += 1
+        let role = AXHelpers.stringAttribute(element, kAXRoleAttribute as String) ?? ""
+        let title = AXHelpers.stringAttribute(element, kAXTitleAttribute as String) ?? ""
+        let description = AXHelpers.stringAttribute(element, kAXDescriptionAttribute as String) ?? ""
+        let value = stringifiedValue(AXHelpers.copyAttribute(element, kAXValueAttribute as String)) ?? ""
+        let blob = "\(role) \(title) \(description) \(value)"
+        if attentionHints(in: blob).isEmpty == false {
+            hints.append(sanitize(blob))
+        }
+        guard depth < maxDepth else { return }
+        guard let children = AXHelpers.copyAttribute(element, kAXChildrenAttribute as String) as? [AXUIElement] else {
+            return
+        }
+        for child in children.prefix(20) {
+            scan(child, depth: depth + 1, maxDepth: maxDepth, maxNodes: maxNodes, visited: &visited, into: &hints)
+            if visited >= maxNodes { return }
+        }
+    }
+
     static func attentionHints(in dump: String) -> [String] {
         let keywords = [
             "unread", "attention", "badge", "notification", "agent",
-            "needs", "complete", "finished", "error", "waiting", "running"
+            "needs", "complete", "finished", "error", "waiting", "running",
+            "stop generating", "keep", "composer", "action required", "generating"
         ]
         return dump
             .components(separatedBy: "\n")

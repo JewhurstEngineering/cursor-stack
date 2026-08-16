@@ -5,6 +5,7 @@ struct OnboardingView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            BrandHero(maxWidth: 320)
             Text("Welcome to CursorStack")
                 .font(.title2.weight(.semibold))
             Text("CursorStack needs Accessibility permission to organize and switch your Cursor windows.")

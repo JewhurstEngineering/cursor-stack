@@ -2,6 +2,7 @@ import Foundation
 import os
 
 enum CSLog {
+    static var debugEnabled = false
     static let subsystem = "dev.jamesware.CursorStack"
 
     static let general = Logger(subsystem: subsystem, category: "general")

@@ -166,7 +166,7 @@ struct AppSettings: Codable, Equatable {
     var showMenuBarIcon: Bool = true
     var showDockIcon: Bool = true
 
-    var tabHeight: CGFloat = 44
+    var tabHeight: CGFloat = 36
     var showProjectName: Bool = true
     var showFullTitle: Bool = false
 

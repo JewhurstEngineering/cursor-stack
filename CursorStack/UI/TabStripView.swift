@@ -2,18 +2,13 @@ import AppKit
 import SwiftUI
 
 struct TabStripView: View {
-    let groupID: UUID
+    @ObservedObject var group: RuntimeWindowGroup
     @ObservedObject var app: ApplicationController
 
-    var group: RuntimeWindowGroup? {
-        app.groupManager.groups.first { $0.id == groupID }
-    }
-
     var body: some View {
-        if let group {
-            HStack(spacing: 10) {
+        HStack(spacing: 10) {
                 TrafficLights(
-                    onClose: { app.groupManager.closeActiveWindow(in: group.id) },
+                    onClose: { NSApp.terminate(nil) },
                     onMiniaturize: { app.groupManager.minimizeGroup(group.id) },
                     onZoom: { app.groupManager.toggleMaximize(group.id) }
                 )
@@ -27,7 +22,8 @@ struct TabStripView: View {
                                 selected: window.id == group.activeWindowID,
                                 showDot: app.settingsStore.settings.showTabIndicator && window.attentionState.showsTabDot,
                                 showWorking: app.settingsStore.settings.showTabIndicator && window.attentionState.showsWorkingIndicator,
-                                showFullTitle: app.settingsStore.settings.showFullTitle
+                                showFullTitle: app.settingsStore.settings.showFullTitle,
+                                showProjectName: app.settingsStore.settings.showProjectName
                             )
                             .onTapGesture {
                                 app.activate(windowID: window.id, in: group.id)
@@ -48,6 +44,23 @@ struct TabStripView: View {
                             .onDrag {
                                 NSItemProvider(object: window.id.uuidString as NSString)
                             }
+                        }
+                        ForEach(group.unresolved) { unresolved in
+                            Button {
+                                app.reconnectUnresolved(unresolved, in: group.id)
+                            } label: {
+                                Text(unresolved.alias ?? unresolved.projectDisplayName)
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundStyle(Color(nsColor: .labelColor).opacity(0.45))
+                                    .padding(.horizontal, 11)
+                                    .padding(.vertical, 5)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .strokeBorder(Color(nsColor: .labelColor).opacity(0.25), style: StrokeStyle(lineWidth: 1, dash: [4]))
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                            .help("Reconnect \(unresolved.projectDisplayName)")
                         }
                     }
                 }
@@ -80,6 +93,9 @@ struct TabStripView: View {
                 .padding(.trailing, 8)
                 .help("Add window or group actions")
             }
+            .onDrop(of: [.text], isTargeted: nil) { providers in
+                app.handleTabDrop(providers: providers, onto: group.windows.last?.id, in: group.id)
+            }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(TitlebarBackground())
             .overlay(alignment: .bottom) {
@@ -102,9 +118,6 @@ struct TabStripView: View {
                 Button("Show All Windows") { app.groupManager.showAllWindows(group.id) }
                 Button("Ungroup All", role: .destructive) { app.groupManager.ungroupAll(group.id) }
             }
-        } else {
-            EmptyView()
-        }
     }
 }
 
@@ -114,10 +127,18 @@ struct TabItemView: View {
     var showDot: Bool
     var showWorking: Bool
     var showFullTitle: Bool
+    var showProjectName: Bool
+
+    private var label: String {
+        if showFullTitle { return window.title }
+        if let alias = window.alias, !alias.isEmpty { return alias }
+        if showProjectName { return window.projectDisplayName }
+        return window.displayName
+    }
 
     var body: some View {
         HStack(spacing: 6) {
-            Text(showFullTitle ? window.title : window.displayName)
+            Text(label)
                 .font(.system(size: 13, weight: selected ? .semibold : .medium))
                 .foregroundStyle(Color(nsColor: .labelColor).opacity(selected ? 1 : 0.78))
                 .lineLimit(1)
@@ -132,13 +153,14 @@ struct TabItemView: View {
             }
         }
         .padding(.horizontal, 11)
-        .padding(.vertical, 5)
+        .padding(.vertical, 4)
         .background(
             RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .fill(selected ? Color(nsColor: .controlAccentColor).opacity(0.38) : Color.clear)
         )
         .help(window.title)
         .opacity(window.isUnavailable ? 0.45 : 1)
+        .animation(.easeInOut(duration: 0.12), value: selected)
     }
 }
 
@@ -151,7 +173,7 @@ struct TrafficLights: View {
     var body: some View {
         HStack(spacing: 8) {
             TrafficLightButton(color: Color(red: 1, green: 0.38, blue: 0.37), symbol: "xmark", hovering: hovering, action: onClose)
-                .help("Close")
+                .help("Quit CursorStack")
             TrafficLightButton(color: Color(red: 1, green: 0.74, blue: 0.18), symbol: "minus", hovering: hovering, action: onMiniaturize)
                 .help("Minimize")
             TrafficLightButton(color: Color(red: 0.19, green: 0.82, blue: 0.35), symbol: "arrow.up.left.and.arrow.down.right", hovering: hovering, action: onZoom)

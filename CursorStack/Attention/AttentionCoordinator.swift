@@ -24,8 +24,10 @@ final class AccessibilityAttentionProvider: AttentionSignalProvider {
 
     func poll(window: ManagedCursorWindow) -> AttentionObservation? {
         guard monitored.contains(window.id) else { return nil }
-        let dump = AXTreeInspector.dump(element: window.element, maxDepth: 6, maxChildren: 24)
-        let hints = AXTreeInspector.attentionHints(in: dump)
+        let hints = AXTreeInspector.collectAttentionHints(from: window.element)
+        if CSLog.debugEnabled {
+            CSLog.attention.debug("AX hints for \(window.displayName, privacy: .public): \(hints.joined(separator: " | "), privacy: .public)")
+        }
         let observation = Self.interpret(hints: hints, title: window.title)
         onStateChanged?(window.id, observation)
         return observation
@@ -36,11 +38,15 @@ final class AccessibilityAttentionProvider: AttentionSignalProvider {
         if blob.contains("error") || blob.contains("failed") {
             return AttentionObservation(state: .error, confidence: 0.6, source: .accessibility)
         }
-        if blob.contains("unread") || blob.contains("needs") || blob.contains("waiting") || blob.contains("action required") {
+        if blob.contains("unread")
+            || blob.contains("needs")
+            || blob.contains("waiting")
+            || blob.contains("action required")
+            || blob.contains("keep") && blob.contains("undo") {
             return AttentionObservation(state: .attention, confidence: 0.75, source: .accessibility)
         }
-        if blob.contains("running") || blob.contains("generating") || blob.contains("agent") && blob.contains("working") {
-            return AttentionObservation(state: .working, confidence: 0.45, source: .accessibility)
+        if blob.contains("stop generating") || blob.contains("generating") || (blob.contains("agent") && blob.contains("running")) {
+            return AttentionObservation(state: .working, confidence: 0.5, source: .accessibility)
         }
         if blob.contains("complete") || blob.contains("finished") {
             return AttentionObservation(state: .completed, confidence: 0.4, source: .accessibility)
@@ -67,8 +73,12 @@ final class WindowMetadataAttentionProvider: AttentionSignalProvider {
 
     func poll(window: ManagedCursorWindow) -> AttentionObservation? {
         guard monitored.contains(window.id) else { return nil }
-        let observation = Self.interpret(title: window.title)
+        let previous = lastTitles[window.id]
         lastTitles[window.id] = window.title
+        var observation = Self.interpret(title: window.title)
+        if let previous, previous != window.title, observation.state == .attention {
+            observation.confidence = min(1, observation.confidence + 0.15)
+        }
         onStateChanged?(window.id, observation)
         return observation
     }
@@ -105,15 +115,28 @@ final class AttentionCoordinator: ObservableObject {
         visualProvider.onStateChanged = handler
     }
 
+    func applySettings(_ settings: AppSettings) {
+        self.settings = settings
+        for window in monitoredWindows.values {
+            if settings.enableVisualDetection {
+                visualProvider.startMonitoring(window: window)
+            } else {
+                visualProvider.stopMonitoring(window: window)
+            }
+        }
+    }
+
     func start(window: ManagedCursorWindow) {
-        monitoredWindows[window.id] = window
-        accessibilityProvider.startMonitoring(window: window)
-        metadataProvider.startMonitoring(window: window)
+        if monitoredWindows[window.id] == nil {
+            monitoredWindows[window.id] = window
+            accessibilityProvider.startMonitoring(window: window)
+            metadataProvider.startMonitoring(window: window)
+            if tracking[window.id] == nil {
+                tracking[window.id] = AttentionTrackingState()
+            }
+        }
         if settings.enableVisualDetection {
             visualProvider.startMonitoring(window: window)
-        }
-        if tracking[window.id] == nil {
-            tracking[window.id] = AttentionTrackingState()
         }
     }
 
@@ -124,18 +147,23 @@ final class AttentionCoordinator: ObservableObject {
         monitoredWindows[window.id] = nil
     }
 
-    func stopAll() {
-        for window in monitoredWindows.values {
-            stop(window: window)
+    func prune(keeping ids: Set<UUID>) {
+        for id in Array(monitoredWindows.keys) where !ids.contains(id) {
+            if let window = monitoredWindows[id] {
+                stop(window: window)
+            }
         }
     }
 
-    func poll() {
+    func poll(selectedWindowID: UUID?) {
         guard settings.detectAttention else { return }
         for window in monitoredWindows.values {
             _ = metadataProvider.poll(window: window)
-            _ = accessibilityProvider.poll(window: window)
-            if settings.enableVisualDetection {
+            let isSelected = window.id == selectedWindowID
+            if !isSelected {
+                _ = accessibilityProvider.poll(window: window)
+            }
+            if settings.enableVisualDetection, !isSelected {
                 _ = visualProvider.poll(window: window)
             }
         }

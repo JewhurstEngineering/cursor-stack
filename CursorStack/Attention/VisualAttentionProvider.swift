@@ -1,6 +1,5 @@
 import AppKit
 import Foundation
-import ScreenCaptureKit
 
 @MainActor
 final class VisualAttentionProvider: AttentionSignalProvider {

@@ -36,6 +36,7 @@
 		AE185F1D7E5BDA37C9F40CB7 /* AttentionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEE45FF35F7D641669E924D6 /* AttentionCoordinator.swift */; };
 		B0044856EB28162A0B35F005 /* HotKeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB92254950672B8DF0B2999F /* HotKeyManager.swift */; };
 		B1EA5BE6E081E1B1634E376B /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F62142CD1CFBE2CF8EC85CB /* Logger.swift */; };
+		B778B52EB4178AA846C0A4CC /* Branding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71B13E44672A6091DB3592D6 /* Branding.swift */; };
 		B9FD7BE0D327241E5903FBA9 /* NotificationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F5F94840B84018FB2AAD25E /* NotificationCoordinator.swift */; };
 		C8D38D84508B267C688D3A1B /* WindowLabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A34CE630CC793E589A570D2 /* WindowLabView.swift */; };
 		EC82E26887B19CF54146E3D5 /* AppSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD8CF37849C5C72C5FDB0BF1 /* AppSettingsStore.swift */; };
@@ -68,6 +69,7 @@
 		611F12616D6FB54C0EA63970 /* AXObserverManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AXObserverManager.swift; sourceTree = "<group>"; };
 		6C456C35BFEE49015680B3CF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		6FBDCBD096A05D7459874843 /* WindowTitleParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowTitleParser.swift; sourceTree = "<group>"; };
+		71B13E44672A6091DB3592D6 /* Branding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Branding.swift; sourceTree = "<group>"; };
 		720AF50019DC58DD6CFE4083 /* ManagedWindows.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManagedWindows.swift; sourceTree = "<group>"; };
 		7A34CE630CC793E589A570D2 /* WindowLabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowLabView.swift; sourceTree = "<group>"; };
 		8C9D94BD3AFB2B8FB0A25F16 /* ApplicationController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicationController.swift; sourceTree = "<group>"; };
@@ -177,6 +179,7 @@
 		9D3126E728B3FA54D5D4C58C /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				71B13E44672A6091DB3592D6 /* Branding.swift */,
 				D5E5BC558FEDC273B7BB9FBB /* GroupTabPanelController.swift */,
 				0476704D086310E590BEF3A8 /* InspectorView.swift */,
 				E02998E7FEA15FDF5FAFD0BE /* MenuBarController.swift */,
@@ -342,6 +345,7 @@
 				EC82E26887B19CF54146E3D5 /* AppSettingsStore.swift in Sources */,
 				F8864B751CD9A55003349972 /* ApplicationController.swift in Sources */,
 				AE185F1D7E5BDA37C9F40CB7 /* AttentionCoordinator.swift in Sources */,
+				B778B52EB4178AA846C0A4CC /* Branding.swift in Sources */,
 				5D63FA4D9E4A34C1B3F8E272 /* CursorDiscoveryService.swift in Sources */,
 				75B3373867B3FFBC6C6FCF0A /* Debouncer.swift in Sources */,
 				0CD10C8D6112C05DE32ACEAC /* FocusCoordinator.swift in Sources */,
@@ -483,7 +487,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 6998422DKP;
 				ENABLE_APP_SANDBOX = NO;
-				ENABLE_HARDENED_RUNTIME = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;

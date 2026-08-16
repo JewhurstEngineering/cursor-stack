@@ -16,6 +16,9 @@ final class AppSettingsStore: ObservableObject {
         if let data = try? Data(contentsOf: url),
            let decoded = try? JSONDecoder().decode(AppSettings.self, from: data) {
             settings = decoded
+            if settings.tabHeight > 40 {
+                settings.tabHeight = 36
+            }
         } else {
             settings = AppSettings()
         }

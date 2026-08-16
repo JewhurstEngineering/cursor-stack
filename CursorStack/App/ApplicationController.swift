@@ -37,6 +37,7 @@ final class ApplicationController: NSObject, ObservableObject {
 
     @Published var permissionGranted = false
     @Published var pickerTargetGroupID: UUID?
+    var pendingReconnect: PersistedWindowReference?
 
     var tabHeight: CGFloat { settingsStore.settings.tabHeight }
 
@@ -77,6 +78,8 @@ final class ApplicationController: NSObject, ObservableObject {
 
         menuBar = MenuBarController(app: self)
         menuBar?.reload()
+        launchAtLogin.apply(enabled: settingsStore.settings.launchAtLogin)
+        CSLog.debugEnabled = settingsStore.settings.debugLogging
 
         NSWorkspace.shared.notificationCenter.addObserver(
             self,
@@ -88,6 +91,12 @@ final class ApplicationController: NSObject, ObservableObject {
             self,
             selector: #selector(appLaunched(_:)),
             name: NSWorkspace.didLaunchApplicationNotification,
+            object: nil
+        )
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self,
+            selector: #selector(frontmostChanged),
+            name: NSWorkspace.didActivateApplicationNotification,
             object: nil
         )
         NSWorkspace.shared.notificationCenter.addObserver(
@@ -115,8 +124,10 @@ final class ApplicationController: NSObject, ObservableObject {
         reconcileTimer = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.reconcile() }
         }
-        attentionTimer = Timer.scheduledTimer(withTimeInterval: 1.2, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.attention.poll() }
+        attentionTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.attention.poll(selectedWindowID: self?.groupManager.preferredGroup()?.activeWindowID)
+            }
         }
     }
 
@@ -147,12 +158,12 @@ final class ApplicationController: NSObject, ObservableObject {
         pickerTargetGroupID = groupID
         groupManager.refreshFromAccessibility()
         let view = WindowPickerView(app: self)
-        present(window: &pickerWindow, title: "CursorStack", size: NSSize(width: 420, height: 460), view: AnyView(view))
+        present(window: &pickerWindow, title: "CursorStack", size: NSSize(width: 420, height: 500), view: AnyView(view))
     }
 
     func showSettings() {
         let view = SettingsView(app: self)
-        present(window: &settingsWindow, title: "CursorStack Settings", size: NSSize(width: 560, height: 520), view: AnyView(view))
+        present(window: &settingsWindow, title: "CursorStack Settings", size: NSSize(width: 560, height: 580), view: AnyView(view))
     }
 
     func showInspector() {
@@ -176,7 +187,12 @@ final class ApplicationController: NSObject, ObservableObject {
 
     func addSelectedWindows(_ windowIDs: [UUID], to groupID: UUID) {
         let windows = groupManager.ungroupedWindows.filter { windowIDs.contains($0.id) }
-        groupManager.add(windows: windows, to: groupID)
+        if let pending = pendingReconnect, let first = windows.first {
+            groupManager.reconnect(persisted: pending, to: first, in: groupID)
+            pendingReconnect = nil
+        } else {
+            groupManager.add(windows: windows, to: groupID)
+        }
         pickerWindow?.close()
     }
 
@@ -208,7 +224,7 @@ final class ApplicationController: NSObject, ObservableObject {
         }
     }
 
-    func handleTabDrop(providers: [NSItemProvider], onto targetID: UUID, in groupID: UUID) -> Bool {
+    func handleTabDrop(providers: [NSItemProvider], onto targetID: UUID?, in groupID: UUID) -> Bool {
         guard let provider = providers.first else { return false }
         provider.loadItem(forTypeIdentifier: UTType.text.identifier, options: nil) { item, _ in
             let raw: String?
@@ -219,9 +235,13 @@ final class ApplicationController: NSObject, ObservableObject {
             }
             guard let raw, let moved = UUID(uuidString: raw.trimmingCharacters(in: .whitespacesAndNewlines)) else { return }
             Task { @MainActor in
-                guard let group = self.groupManager.groups.first(where: { $0.id == groupID }),
-                      let dest = group.windows.firstIndex(where: { $0.id == targetID }) else { return }
-                self.groupManager.reorder(in: groupID, moving: moved, to: dest)
+                guard let destGroup = self.groupManager.groups.first(where: { $0.id == groupID }) else { return }
+                let dest = targetID.flatMap { id in destGroup.windows.firstIndex(where: { $0.id == id }) } ?? destGroup.windows.count
+                if let source = self.groupManager.group(containing: moved), source.id != groupID {
+                    self.groupManager.moveWindow(moved, from: source.id, to: groupID, at: dest)
+                } else {
+                    self.groupManager.reorder(in: groupID, moving: moved, to: dest)
+                }
             }
         }
         return true
@@ -247,10 +267,11 @@ final class ApplicationController: NSObject, ObservableObject {
     }
 
     func applySettingsSideEffects() {
-        attention.settings = settingsStore.settings
+        attention.applySettings(settingsStore.settings)
         hotKeys?.update(settings: settingsStore.settings)
         applyActivationPolicy()
         launchAtLogin.apply(enabled: settingsStore.settings.launchAtLogin)
+        CSLog.debugEnabled = settingsStore.settings.debugLogging
         menuBar?.reload()
         realignPanels()
         objectWillChange.send()
@@ -303,13 +324,15 @@ final class ApplicationController: NSObject, ObservableObject {
     }
 
     private func startAttentionForAll() {
-        attention.stopAll()
-        for window in groupManager.groups.flatMap(\.windows) {
+        let grouped = groupManager.groups.flatMap(\.windows)
+        let groupedIDs = Set(grouped.map(\.id))
+        attention.prune(keeping: groupedIDs)
+        for window in grouped {
             attention.start(window: window)
         }
     }
 
-    private func realignPanels() {
+    private func realignPanels(refreshTabs: Bool = true) {
         let tabHeight = settingsStore.settings.tabHeight
         for group in groupManager.groups {
             if tabPanels[group.id] == nil {
@@ -319,12 +342,13 @@ final class ApplicationController: NSObject, ObservableObject {
                 tabPanels[group.id]?.setHidden(true)
                 continue
             }
-            if tabPanels[group.id]?.isUserMoving == true {
-                continue
-            }
             tabPanels[group.id]?.setHidden(false)
             let frame = group.activeWindow?.frame ?? group.synchronizedFrame
             tabPanels[group.id]?.align(to: frame, tabHeight: tabHeight)
+            if refreshTabs {
+                tabPanels[group.id]?.refreshContent()
+            }
+            tabPanels[group.id]?.followFrontmostApp(raise: shouldRaiseChrome)
         }
         for id in tabPanels.keys where !groupManager.groups.contains(where: { $0.id == id }) {
             tabPanels[id]?.close()
@@ -332,31 +356,48 @@ final class ApplicationController: NSObject, ObservableObject {
         }
     }
 
-    func persistGroupsAfterPanelMove() {
-        groupStore.save(groupManager.persistableGroups())
+    private var shouldRaiseChrome: Bool {
+        if NSApp.isActive { return true }
+        guard let front = NSWorkspace.shared.frontmostApplication else { return false }
+        if front.bundleIdentifier == Bundle.main.bundleIdentifier { return true }
+        return discovery.isCursor(front)
     }
 
     private func handleAXEvent(pid: pid_t, element: AXUIElement, notification: String) {
+        let moved = kAXMovedNotification as String
+        let resized = kAXResizedNotification as String
+        let created = kAXWindowCreatedNotification as String
+        let destroyed = kAXUIElementDestroyedNotification as String
+        let focused = kAXFocusedWindowChangedNotification as String
+        let mainChanged = kAXMainWindowChangedNotification as String
+        let titled = kAXTitleChangedNotification as String
+        let miniaturized = kAXWindowMiniaturizedNotification as String
+        let deminiaturized = kAXWindowDeminiaturizedNotification as String
+
         switch notification {
-        case kAXMovedNotification as String, kAXResizedNotification as String:
+        case moved, resized:
+            if tabPanels.values.contains(where: \.isUserMoving) {
+                return
+            }
             groupManager.handleFrameChange(pid: pid, element: element)
-            realignPanels()
-        case kAXWindowCreatedNotification as String:
+            realignPanels(refreshTabs: false)
+            return
+        case created:
             groupManager.refreshFromAccessibility()
-        case kAXUIElementDestroyedNotification as String:
+        case destroyed:
             groupManager.handleWindowClosed(element: element)
-        case kAXFocusedWindowChangedNotification as String, kAXMainWindowChangedNotification as String:
+        case focused, mainChanged:
             groupManager.handleFocusChange(pid: pid, element: element)
-        case kAXTitleChangedNotification as String:
+        case titled:
             groupManager.refreshFromAccessibility()
-        case kAXWindowMiniaturizedNotification as String:
+        case miniaturized:
             groupManager.handleMiniaturize(element: element, minimized: true)
-        case kAXWindowDeminiaturizedNotification as String:
+        case deminiaturized:
             groupManager.handleMiniaturize(element: element, minimized: false)
         default:
             break
         }
-        realignPanels()
+        realignPanels(refreshTabs: true)
         menuBar?.reload()
     }
 
@@ -400,7 +441,7 @@ final class ApplicationController: NSObject, ObservableObject {
 
     private func showOnboarding() {
         let view = OnboardingView(app: self)
-        present(window: &onboardingWindow, title: "Welcome to CursorStack", size: NSSize(width: 460, height: 420), view: AnyView(view))
+        present(window: &onboardingWindow, title: "Welcome to CursorStack", size: NSSize(width: 480, height: 500), view: AnyView(view))
     }
 
     private func present(window: inout NSWindow?, title: String, size: NSSize, view: AnyView) {
@@ -435,6 +476,29 @@ final class ApplicationController: NSObject, ObservableObject {
         guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
               discovery.isCursor(app) else { return }
         reconcile()
+    }
+
+    @objc private func frontmostChanged() {
+        realignPanels()
+    }
+
+    func chromeDidMove(groupID: UUID, panelFrame: CGRect) {
+        groupManager.moveGroup(groupID, matchingTabPanel: panelFrame)
+    }
+
+    func chromeMoveEnded() {
+        realignPanels(refreshTabs: false)
+        persistGroupsAfterPanelMove()
+    }
+
+    func persistGroupsAfterPanelMove() {
+        groupStore.save(groupManager.persistableGroups())
+    }
+
+    func reconnectUnresolved(_ persisted: PersistedWindowReference, in groupID: UUID) {
+        pickerTargetGroupID = groupID
+        showWindowPicker(addingTo: groupID)
+        pendingReconnect = persisted
     }
 }
 

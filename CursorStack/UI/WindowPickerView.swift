@@ -11,6 +11,8 @@ struct WindowPickerView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            BrandWordmark(height: 40)
+
             Text(app.pickerTargetGroupID == nil ? "Create a group" : "Add windows")
                 .font(.title3.weight(.semibold))
 

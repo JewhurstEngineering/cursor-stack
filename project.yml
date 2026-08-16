@@ -16,6 +16,10 @@ settings:
     ENABLE_APP_SANDBOX: NO
     COMBINE_HIDPI_IMAGES: YES
     SWIFT_STRICT_CONCURRENCY: targeted
+  configs:
+    Release:
+      ENABLE_HARDENED_RUNTIME: YES
+      SWIFT_OPTIMIZATION_LEVEL: -O
 targets:
   CursorStack:
     type: application
@@ -35,6 +39,7 @@ targets:
         CFBundleVersion: "1"
         LSMinimumSystemVersion: "14.0"
         NSHighResolutionCapable: true
+        NSHumanReadableCopyright: "Copyright © 2026"
         LSApplicationCategoryType: public.app-category.developer-tools
         NSUserNotificationAlertStyle: banner
         NSScreenCaptureUsageDescription: CursorStack can optionally capture a small region of Cursor windows to detect attention badges. Nothing is uploaded.

@@ -19,6 +19,15 @@ struct SettingsView: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack {
+                BrandWordmark(height: 36)
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 4)
+        }
     }
 
     private var settings: Binding<AppSettings> {
@@ -43,10 +52,13 @@ struct SettingsView: View {
     private var tabs: some View {
         Form {
             Picker("Tab height", selection: settings.tabHeight) {
-                Text("Compact").tag(CGFloat(40))
-                Text("Regular").tag(CGFloat(44))
-                Text("Comfortable").tag(CGFloat(52))
+                Text("Compact").tag(CGFloat(35))
+                Text("Regular").tag(CGFloat(36))
+                Text("Comfortable").tag(CGFloat(40))
             }
+            Text("The strip covers Cursor’s titlebar. Taller than Regular can clip the editor.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
             Toggle("Project name", isOn: settings.showProjectName)
             Toggle("Full Cursor window title", isOn: settings.showFullTitle)
         }
@@ -72,7 +84,7 @@ struct SettingsView: View {
             Toggle("Notify while CursorStack is frontmost", isOn: settings.notifyWhenFrontmost)
             Toggle("Notify for currently selected tab", isOn: settings.notifyForSelectedTab)
             Toggle("Enable experimental visual detection", isOn: settings.enableVisualDetection)
-            Text("Experimental: Visual Cursor Alert Detection requires Screen Recording permission. Nothing is uploaded.")
+            Text("Attention uses Accessibility first, then window titles. Visual capture is experimental, local-only, and needs Screen Recording. If Cursor does not expose a badge, grouping still works.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

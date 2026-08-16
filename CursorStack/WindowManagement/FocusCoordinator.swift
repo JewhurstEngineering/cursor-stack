@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 enum FocusCoordinator {
@@ -7,7 +8,10 @@ enum FocusCoordinator {
         discovery: CursorDiscoveryService,
         accessibility: AccessibilityService
     ) {
-        discovery.activateCursor(pid: window.pid)
+        let frontPID = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        if frontPID != window.pid {
+            discovery.activateCursor(pid: window.pid)
+        }
         do {
             try accessibility.raise(window.snapshot)
             try accessibility.focus(window.snapshot)

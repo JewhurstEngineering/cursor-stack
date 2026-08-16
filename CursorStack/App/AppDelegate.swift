@@ -20,6 +20,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 
+    @objc func showAbout() {
+        let credits = NSAttributedString(
+            string: "Groups Cursor windows into a tabbed stack.",
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 11),
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]
+        )
+        NSApp.orderFrontStandardAboutPanel(options: [
+            .applicationName: "CursorStack",
+            .credits: credits
+        ])
+    }
+
     @objc func showSettings() {
         MainActor.assumeIsolated {
             controller?.showSettings()
@@ -38,7 +52,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let appItem = NSMenuItem()
         mainMenu.addItem(appItem)
         let appMenu = NSMenu()
-        appMenu.addItem(withTitle: "About CursorStack", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        let about = NSMenuItem(title: "About CursorStack", action: #selector(showAbout), keyEquivalent: "")
+        about.target = self
+        appMenu.addItem(about)
         appMenu.addItem(.separator())
         let settingsItem = NSMenuItem(title: "Settings…", action: #selector(showSettings), keyEquivalent: ",")
         settingsItem.target = self

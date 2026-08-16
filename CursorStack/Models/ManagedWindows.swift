@@ -87,7 +87,7 @@ final class RuntimeWindowGroup: ObservableObject, Identifiable {
     @Published var isPaused: Bool
     @Published var isFullScreenPaused: Bool
     var isApplyingSynchronizedFrame = false
-    var synchronizationGeneration: UInt64 = 0
+    var suppressAXUntil: Date?
     var frameBeforeMaximize: CGRect?
 
     var activeWindow: ManagedCursorWindow? {
@@ -101,6 +101,8 @@ final class RuntimeWindowGroup: ObservableObject, Identifiable {
     var isMinimized: Bool {
         activeWindow?.isMinimized == true
     }
+
+    @Published var unresolved: [PersistedWindowReference] = []
 
     init(
         id: UUID = UUID(),
@@ -123,7 +125,7 @@ final class RuntimeWindowGroup: ObservableObject, Identifiable {
         CursorWindowGroup(
             id: id,
             name: name,
-            members: windows.map { $0.persistedReference() },
+            members: windows.map { $0.persistedReference() } + unresolved,
             activeMemberID: activeWindowID,
             frame: CodableRect(synchronizedFrame),
             settings: GroupSettings(isPaused: isPaused)

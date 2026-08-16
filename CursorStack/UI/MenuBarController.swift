@@ -18,19 +18,20 @@ final class MenuBarController: NSObject {
             return
         }
         if item == nil {
-            item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+            item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         }
         guard let button = item?.button else { return }
 
         let hasAttention = app.groupManager.groups
             .flatMap(\.windows)
             .contains { $0.attentionState.showsTabDot }
-        let image = NSImage(systemSymbolName: "square.stack.3d.up.fill", accessibilityDescription: "CursorStack")
+        let image = NSImage(named: BrandImage.menuBar)
         image?.isTemplate = true
         button.image = image
-        button.imagePosition = .imageLeading
-        button.title = hasAttention ? "CS•" : "CS"
-        button.toolTip = "CursorStack"
+        button.imagePosition = .imageOnly
+        button.title = ""
+        button.toolTip = hasAttention ? "CursorStack — a window needs attention" : "CursorStack"
+        button.contentTintColor = hasAttention ? .controlAccentColor : nil
         item?.isVisible = true
 
         let menu = NSMenu()
