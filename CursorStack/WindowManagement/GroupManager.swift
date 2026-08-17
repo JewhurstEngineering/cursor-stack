@@ -20,6 +20,7 @@ final class GroupManager: ObservableObject {
     private let accessibility: AccessibilityService
     private let discovery: CursorDiscoveryService
     private let persistDebouncer = Debouncer(delay: 0.4)
+    private let fitDebouncer = Debouncer(delay: 0.24)
     private var knownElementTokens = Set<UInt>()
     private var consecutiveMisses: [UUID: Int] = [:]
 
@@ -42,7 +43,8 @@ final class GroupManager: ObservableObject {
         }
         guard unique.count >= 1 else { return }
 
-        let canonical = frame ?? unique.first(where: { $0.isFocused || $0.isMain })?.frame ?? unique[0].frame
+        let requestedFrame = frame ?? unique.first(where: { $0.isFocused || $0.isMain })?.frame ?? unique[0].frame
+        let canonical = frameLeavingTabRoom(requestedFrame)
         let group = RuntimeWindowGroup(
             name: name,
             windows: unique,
@@ -203,15 +205,24 @@ final class GroupManager: ObservableObject {
             guard let self else { return }
             self.delegate?.groupManagerNeedsPersistence(self)
         }
+        fitDebouncer.run { [weak self] in
+            self?.ensureTabRoom(for: group.id)
+        }
         group.objectWillChange.send()
     }
 
     func synchronizeFrame(_ frame: CGRect, in groupID: UUID) {
         guard let group = groups.first(where: { $0.id == groupID }) else { return }
         guard !group.isPaused, !group.isFullScreenPaused else { return }
-        group.synchronizedFrame = frame
+        group.synchronizedFrame = frameLeavingTabRoom(frame)
         applyCanonicalFrame(in: group, raising: nil)
         delegate?.groupManagerNeedsPersistence(self)
+    }
+
+    func ensureTabRoomForAllGroups() {
+        for group in groups {
+            ensureTabRoom(for: group.id)
+        }
     }
 
     func pause(_ groupID: UUID, paused: Bool) {
@@ -295,7 +306,7 @@ final class GroupManager: ObservableObject {
             matchingTabPanel: panelFrame,
             windowHeight: height
         )
-        group.synchronizedFrame = newFrame
+        group.synchronizedFrame = frameLeavingTabRoom(newFrame)
         applyCanonicalFrame(in: group, raising: nil)
     }
 
@@ -556,6 +567,35 @@ final class GroupManager: ObservableObject {
         group.objectWillChange.send()
     }
 
+    private func ensureTabRoom(for groupID: UUID) {
+        guard let group = groups.first(where: { $0.id == groupID }),
+              !group.isPaused,
+              !group.isFullScreenPaused else { return }
+        let fitted = frameLeavingTabRoom(group.synchronizedFrame)
+        guard !ScreenCoordinateConverter.framesApproximatelyEqual(
+            fitted,
+            group.synchronizedFrame,
+            tolerance: 1
+        ) else { return }
+
+        group.synchronizedFrame = fitted
+        applyCanonicalFrame(in: group, raising: nil)
+        delegate?.groupManagerNeedsPersistence(self)
+    }
+
+    private func frameLeavingTabRoom(_ frame: CGRect) -> CGRect {
+        let screen = NSScreen.screens.max {
+            $0.frame.intersection(frame).standardizedArea
+                < $1.frame.intersection(frame).standardizedArea
+        } ?? NSScreen.main
+        guard let visibleFrame = screen?.visibleFrame else { return frame }
+        return ScreenCoordinateConverter.contentFrameLeavingTabRoom(
+            frame,
+            tabHeight: delegate?.tabHeight ?? 36,
+            visibleFrame: visibleFrame
+        )
+    }
+
     private func safeRestoreFrame(
         persisted: CGRect,
         liveMembers: [ManagedCursorWindow]
@@ -566,7 +606,7 @@ final class GroupManager: ObservableObject {
                     "Restore using live frame \(String(describing: bestLive.frame), privacy: .public) instead of persisted \(String(describing: persisted), privacy: .public)"
                 )
             }
-            return bestLive.frame
+            return frameLeavingTabRoom(bestLive.frame)
         }
 
         let visibleFrames = NSScreen.screens.map(\.visibleFrame)
@@ -580,7 +620,7 @@ final class GroupManager: ObservableObject {
                 "Recovered off-screen group frame \(String(describing: persisted), privacy: .public) to \(String(describing: recovered), privacy: .public)"
             )
         }
-        return recovered
+        return frameLeavingTabRoom(recovered)
     }
 
     private func bestVisibleLiveWindow(
@@ -624,5 +664,12 @@ final class GroupManager: ObservableObject {
         allManagedWindows.first { window in
             window.pid == pid && AXHelpers.equal(window.element, element)
         } ?? allManagedWindows.first { AXHelpers.equal($0.element, element) }
+    }
+}
+
+private extension CGRect {
+    var standardizedArea: CGFloat {
+        let rect = standardized
+        return max(0, rect.width) * max(0, rect.height)
     }
 }

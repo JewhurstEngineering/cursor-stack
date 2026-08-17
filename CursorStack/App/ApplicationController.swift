@@ -275,8 +275,13 @@ final class ApplicationController: NSObject, ObservableObject {
         launchAtLogin.apply(enabled: settingsStore.settings.launchAtLogin)
         CSLog.debugEnabled = settingsStore.settings.debugLogging
         menuBar?.reload()
+        groupManager.ensureTabRoomForAllGroups()
         realignPanels()
         objectWillChange.send()
+    }
+
+    func setShortcutRecording(_ isRecording: Bool) {
+        hotKeys?.isSuspended = isRecording
     }
 
     func dumpAXTree(for window: ManagedCursorWindow) -> String {
@@ -336,11 +341,13 @@ final class ApplicationController: NSObject, ObservableObject {
 
     private func realignPanels(refreshTabs: Bool = true) {
         let tabHeight = settingsStore.settings.tabHeight
+        let showChrome = shouldShowChrome
         for group in groupManager.groups {
             if tabPanels[group.id] == nil {
+                guard showChrome, !group.isMinimized else { continue }
                 tabPanels[group.id] = GroupTabPanelController(group: group, app: self)
             }
-            if group.isMinimized {
+            if group.isMinimized || !showChrome {
                 tabPanels[group.id]?.setHidden(true)
                 continue
             }
@@ -350,7 +357,7 @@ final class ApplicationController: NSObject, ObservableObject {
             if refreshTabs {
                 tabPanels[group.id]?.refreshContent()
             }
-            tabPanels[group.id]?.followFrontmostApp(raise: shouldRaiseChrome)
+            tabPanels[group.id]?.followFrontmostApp(raise: true)
         }
         for id in tabPanels.keys where !groupManager.groups.contains(where: { $0.id == id }) {
             tabPanels[id]?.close()
@@ -358,10 +365,8 @@ final class ApplicationController: NSObject, ObservableObject {
         }
     }
 
-    private var shouldRaiseChrome: Bool {
-        if NSApp.isActive { return true }
+    private var shouldShowChrome: Bool {
         guard let front = NSWorkspace.shared.frontmostApplication else { return false }
-        if front.bundleIdentifier == Bundle.main.bundleIdentifier { return true }
         return discovery.isCursor(front)
     }
 

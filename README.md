@@ -4,7 +4,7 @@
   <img src="images/cursorstack-logo-full-color.png" alt="CursorStack" width="520">
 </p>
 
-Native macOS utility that groups Cursor windows into a logical tabbed stack. It does **not** embed Cursor. It aligns real Cursor windows and overlays a tab strip on their titlebar.
+Native macOS utility that groups Cursor windows into a logical tabbed stack. It does **not** embed Cursor. It aligns real Cursor windows beneath a dedicated tab strip.
 
 This app is **not App Sandboxed**. Accessibility window control cannot run inside Apple App Sandbox. Ship it as a signed, notarized direct download — not the Mac App Store.
 
@@ -45,11 +45,13 @@ Notarization needs your Developer ID and a `notarytool` keychain profile. The sc
 1. Run CursorStack and grant Accessibility.
 2. Open several Cursor project windows.
 3. Create a group from the menu bar icon or the picker.
-4. The tab strip covers Cursor’s titlebar (quit / minimize / fill-screen, tabs, and +). Clicking another app covers it like a normal window. The red close button quits CursorStack; Cursor windows stay open.
+4. The tab strip sits above Cursor’s native titlebar (quit / minimize / fill-screen, tabs, Add, and Settings), so Cursor’s search field remains usable. Clicking another app hides it like a normal window. The red close button quits CursorStack; Cursor windows stay open.
 
-**Settings** is under CursorStack → Settings… (`⌘,`), or the menu bar icon → Settings…. General covers launch at login, the menu bar icon, and the Dock icon. Other tabs cover tab height, shortcuts, and attention.
+**Settings** is under CursorStack → Settings… (`⌘,`), or the menu bar icon → Settings…. General includes installation in Applications, launch at login, the menu bar icon, and the Dock icon. Other tabs cover tab height, shortcuts, and attention.
 
 ## Shortcuts
+
+These global shortcuts can be changed under **Settings → Shortcuts**. CursorStack warns about duplicate assignments and common macOS conflicts.
 
 - `⌃⌥ ]` next tab
 - `⌃⌥ [` previous tab

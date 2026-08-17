@@ -6,6 +6,7 @@ final class HotKeyManager {
     var onNextTab: (() -> Void)?
     var onPreviousTab: (() -> Void)?
     var onNumberedTab: ((Int) -> Void)?
+    var isSuspended = false
 
     private var localMonitor: Any?
     private var globalMonitor: Any?
@@ -44,6 +45,7 @@ final class HotKeyManager {
     }
 
     private func handle(_ event: NSEvent) -> Bool {
+        guard !isSuspended else { return false }
         if matches(event, settings.nextTabHotKey) {
             onNextTab?()
             return true
@@ -53,7 +55,11 @@ final class HotKeyManager {
             return true
         }
         for number in 1...9 {
-            if matches(event, .numberedTab(number)) {
+            let spec = HotKeySpec.numberedTab(
+                number,
+                modifiers: settings.effectiveNumberedTabHotKey
+            )
+            if matches(event, spec) {
                 onNumberedTab?(number)
                 return true
             }

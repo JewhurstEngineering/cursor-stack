@@ -87,26 +87,48 @@ final class ScreenCoordinateConverterTests: XCTestCase {
         XCTAssertEqual(recovered.size, visible.size)
     }
 
-    func testTabPanelOverlaysTitlebar() {
+    func testTabPanelSitsAboveCursorTitlebar() {
         let window = CGRect(x: 100, y: 200, width: 800, height: 600)
         let visible = CGRect(x: 0, y: 0, width: 1440, height: 900)
         let panel = ScreenCoordinateConverter.tabPanelFrame(windowFrame: window, height: 36, visibleFrame: visible)
         XCTAssertEqual(panel.minX, 100)
         XCTAssertEqual(panel.width, 800)
-        XCTAssertEqual(panel.minY, 764)
-        XCTAssertEqual(panel.maxY, 800)
+        XCTAssertEqual(panel.minY, 800)
+        XCTAssertEqual(panel.maxY, 836)
         XCTAssertEqual(panel.height, 36)
     }
 
-    func testMaximizeFillsWorkAreaBecauseChromeOverlays() {
+    func testMaximizeLeavesRoomForTabBar() {
         let visible = CGRect(x: 0, y: 0, width: 1512, height: 944)
         let content = ScreenCoordinateConverter.maximizedContentFrame(visibleFrame: visible, tabHeight: 36)
-        XCTAssertEqual(content.height, 944)
+        XCTAssertEqual(content.height, 908)
         XCTAssertEqual(content.width, 1512)
+        XCTAssertEqual(content.maxY, 908)
     }
 
-    func testWindowFollowsOverlayPanel() {
-        let panel = CGRect(x: 100, y: 764, width: 800, height: 36)
+    func testFullHeightWindowShrinksToLeaveTabRoom() {
+        let visible = CGRect(x: 0, y: 0, width: 1512, height: 944)
+        let content = ScreenCoordinateConverter.contentFrameLeavingTabRoom(
+            visible,
+            tabHeight: 36,
+            visibleFrame: visible
+        )
+        XCTAssertEqual(content, CGRect(x: 0, y: 0, width: 1512, height: 908))
+    }
+
+    func testFloatingWindowMovesDownToLeaveTabRoomWithoutShrinking() {
+        let visible = CGRect(x: 0, y: 0, width: 1440, height: 900)
+        let original = CGRect(x: 100, y: 400, width: 800, height: 500)
+        let content = ScreenCoordinateConverter.contentFrameLeavingTabRoom(
+            original,
+            tabHeight: 36,
+            visibleFrame: visible
+        )
+        XCTAssertEqual(content, CGRect(x: 100, y: 364, width: 800, height: 500))
+    }
+
+    func testWindowFollowsPanelBelowItsBottomEdge() {
+        let panel = CGRect(x: 100, y: 800, width: 800, height: 36)
         let window = ScreenCoordinateConverter.windowFrame(matchingTabPanel: panel, windowHeight: 600)
         XCTAssertEqual(window.minX, 100)
         XCTAssertEqual(window.maxY, 800)
@@ -117,6 +139,82 @@ final class ScreenCoordinateConverterTests: XCTestCase {
         let a = CGRect(x: 10, y: 10, width: 100, height: 100)
         let b = CGRect(x: 11, y: 9.5, width: 100.5, height: 101)
         XCTAssertTrue(ScreenCoordinateConverter.framesApproximatelyEqual(a, b, tolerance: 2))
+    }
+}
+
+final class ShortcutSettingsTests: XCTestCase {
+    func testCustomNumberedModifiersApplyToEveryNumber() {
+        let modifiers = HotKeySpec(
+            keyCode: 18,
+            control: false,
+            option: true,
+            shift: true,
+            command: false
+        )
+
+        XCTAssertEqual(
+            HotKeySpec.numberedTab(9, modifiers: modifiers),
+            HotKeySpec(
+                keyCode: 25,
+                control: false,
+                option: true,
+                shift: true,
+                command: false
+            )
+        )
+    }
+
+    func testWarnsWhenNextAndPreviousShortcutsMatch() {
+        var settings = AppSettings()
+        settings.previousTabHotKey = settings.nextTabHotKey
+
+        XCTAssertEqual(
+            ShortcutConflictDetector.warning(
+                for: settings.nextTabHotKey,
+                kind: .nextTab,
+                settings: settings
+            ),
+            "Also assigned to Previous tab."
+        )
+    }
+
+    func testWarnsWhenShortcutOverlapsNumberedTabs() {
+        var settings = AppSettings()
+        settings.nextTabHotKey = .numberedTab(3)
+
+        XCTAssertEqual(
+            ShortcutConflictDetector.warning(
+                for: settings.nextTabHotKey,
+                kind: .nextTab,
+                settings: settings
+            ),
+            "Also assigned to one of the Jump to tab shortcuts."
+        )
+    }
+
+    func testWarnsAboutCommonMacOSShortcut() {
+        let commandQ = HotKeySpec(
+            keyCode: 12,
+            control: false,
+            option: false,
+            shift: false,
+            command: true
+        )
+
+        XCTAssertNotNil(
+            ShortcutConflictDetector.warning(
+                for: commandQ,
+                kind: .nextTab,
+                settings: AppSettings()
+            )
+        )
+    }
+
+    func testOlderSettingsDecodeWithoutNumberedShortcut() throws {
+        let data = try JSONEncoder().encode(AppSettings())
+        let decoded = try JSONDecoder().decode(AppSettings.self, from: data)
+
+        XCTAssertEqual(decoded.effectiveNumberedTabHotKey, .numberedTabModifiers)
     }
 }
 

@@ -1,9 +1,13 @@
+import AppKit
 import SwiftUI
 
 struct SettingsView: View {
     @ObservedObject var app: ApplicationController
     @ObservedObject private var settingsStore: AppSettingsStore
     @State private var selection: SettingsSection = .general
+    @State private var installMessage: String?
+    @State private var installSucceeded = false
+    @State private var recordingShortcut: ShortcutTarget?
 
     init(app: ApplicationController) {
         self.app = app
@@ -131,6 +135,56 @@ struct SettingsView: View {
 
     private var general: some View {
         VStack(spacing: 16) {
+            SettingsCard(title: "Installation", symbol: "square.and.arrow.down") {
+                HStack(alignment: .center, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(installationTitle)
+                            .font(.system(size: 13, weight: .semibold))
+                        Text(installationDetail)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    if AppInstall.isRunningFromApplications {
+                        Label("Installed", systemImage: "checkmark.circle.fill")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(.green)
+                    } else if installSucceeded {
+                        Label("Ready", systemImage: "checkmark.circle.fill")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(.green)
+                    } else {
+                        Button(AppInstall.isInstalled ? "Update in Applications" : "Install to Applications") {
+                            installToApplications()
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                }
+
+                if !AppInstall.isRunningFromApplications,
+                   installSucceeded || AppInstall.isInstalled {
+                    Divider()
+                    HStack(spacing: 10) {
+                        Button("Reveal in Finder") {
+                            NSWorkspace.shared.activateFileViewerSelecting([AppInstall.installedAppURL])
+                        }
+                        Button("Quit and Reopen from Applications") {
+                            AppInstall.launchInstalledAndTerminate()
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                }
+
+                if let installMessage {
+                    Text(installMessage)
+                        .font(.caption)
+                        .foregroundStyle(installSucceeded ? Color.secondary : Color.orange)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
             SettingsCard(title: "Startup", symbol: "power") {
                 SettingsToggleRow(
                     title: "Open at login",
@@ -176,7 +230,7 @@ struct SettingsView: View {
                     }
                     .labelsHidden()
                     .pickerStyle(.segmented)
-                    Text("The bar replaces Cursor’s title area. Regular is the safest fit.")
+                    Text("The bar sits above Cursor in its own row. Compact leaves the most room.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -203,15 +257,138 @@ struct SettingsView: View {
 
     private var shortcuts: some View {
         SettingsCard(title: "Switch tabs from anywhere", symbol: "keyboard") {
-            ShortcutRow(title: "Next tab", shortcut: settingsStore.settings.nextTabHotKey.displayString)
+            ShortcutRecorder(
+                title: "Next tab",
+                shortcut: settingsStore.settings.nextTabHotKey.displayString,
+                warning: ShortcutConflictDetector.warning(
+                    for: settingsStore.settings.nextTabHotKey,
+                    kind: .nextTab,
+                    settings: settingsStore.settings
+                ),
+                isRecording: recordingShortcut == .nextTab,
+                onBeginRecording: { beginRecording(.nextTab) },
+                onEndRecording: endRecording,
+                onCapture: { setShortcut($0, for: .nextTab) }
+            )
             Divider()
-            ShortcutRow(title: "Previous tab", shortcut: settingsStore.settings.previousTabHotKey.displayString)
+            ShortcutRecorder(
+                title: "Previous tab",
+                shortcut: settingsStore.settings.previousTabHotKey.displayString,
+                warning: ShortcutConflictDetector.warning(
+                    for: settingsStore.settings.previousTabHotKey,
+                    kind: .previousTab,
+                    settings: settingsStore.settings
+                ),
+                isRecording: recordingShortcut == .previousTab,
+                onBeginRecording: { beginRecording(.previousTab) },
+                onEndRecording: endRecording,
+                onCapture: { setShortcut($0, for: .previousTab) }
+            )
             Divider()
-            ShortcutRow(title: "Jump to tab 1–9", shortcut: "⌃⌥ 1 … 9")
-            Text("These shortcuts work globally while CursorStack has Accessibility permission.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .padding(.top, 4)
+            ShortcutRecorder(
+                title: "Jump to tab 1–9",
+                shortcut: numberedTabShortcutDisplay,
+                warning: ShortcutConflictDetector.warning(
+                    for: settingsStore.settings.effectiveNumberedTabHotKey,
+                    kind: .numberedTabs,
+                    settings: settingsStore.settings
+                ),
+                isRecording: recordingShortcut == .numberedTabs,
+                onBeginRecording: { beginRecording(.numberedTabs) },
+                onEndRecording: endRecording,
+                onCapture: { setShortcut($0, for: .numberedTabs) }
+            )
+
+            HStack(alignment: .firstTextBaseline, spacing: 16) {
+                Text("Click a shortcut to record it. CursorStack checks its own shortcuts and common macOS shortcuts, but other apps do not expose all of theirs.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer()
+                Button("Restore Defaults") {
+                    restoreDefaultShortcuts()
+                }
+                .controlSize(.small)
+            }
+            .padding(.top, 4)
+        }
+        .onDisappear(perform: endRecording)
+    }
+
+    private var numberedTabShortcutDisplay: String {
+        settingsStore.settings.effectiveNumberedTabHotKey.modifierDisplayString + "1 … 9"
+    }
+
+    private func beginRecording(_ target: ShortcutTarget) {
+        recordingShortcut = target
+        app.setShortcutRecording(true)
+    }
+
+    private func endRecording() {
+        recordingShortcut = nil
+        app.setShortcutRecording(false)
+    }
+
+    private func setShortcut(_ shortcut: HotKeySpec, for target: ShortcutTarget) {
+        var updated = settingsStore.settings
+        switch target {
+        case .nextTab:
+            updated.nextTabHotKey = shortcut
+        case .previousTab:
+            updated.previousTabHotKey = shortcut
+        case .numberedTabs:
+            updated.numberedTabHotKey = HotKeySpec(
+                keyCode: 18,
+                control: shortcut.control,
+                option: shortcut.option,
+                shift: shortcut.shift,
+                command: shortcut.command
+            )
+        }
+        settingsStore.settings = updated
+        app.applySettingsSideEffects()
+    }
+
+    private func restoreDefaultShortcuts() {
+        var updated = settingsStore.settings
+        updated.nextTabHotKey = .nextTab
+        updated.previousTabHotKey = .previousTab
+        updated.numberedTabHotKey = nil
+        settingsStore.settings = updated
+        app.applySettingsSideEffects()
+        endRecording()
+    }
+
+    private var installationTitle: String {
+        if AppInstall.isRunningFromApplications {
+            return "CursorStack is running from Applications"
+        }
+        if installSucceeded {
+            return "CursorStack is ready in Applications"
+        }
+        return AppInstall.isInstalled
+            ? "An Applications copy is available"
+            : "Move CursorStack out of its build folder"
+    }
+
+    private var installationDetail: String {
+        if AppInstall.isRunningFromApplications {
+            return "This is the installed copy. Updates can replace it later."
+        }
+        if installSucceeded {
+            return "Quit this build and reopen the installed copy to finish switching over."
+        }
+        return "Install a standalone copy so CursorStack is available outside Xcode."
+    }
+
+    private func installToApplications() {
+        do {
+            let destination = try AppInstall.copyRunningAppToApplications()
+            installSucceeded = true
+            installMessage = "Copied to \(destination.path). Use Quit and Reopen to switch to it."
+        } catch {
+            installSucceeded = false
+            installMessage = "Couldn’t install CursorStack: \(error.localizedDescription)"
         }
     }
 
@@ -379,6 +556,12 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
     }
 }
 
+private enum ShortcutTarget {
+    case nextTab
+    case previousTab
+    case numberedTabs
+}
+
 private enum TabLabelStyle: String, CaseIterable, Identifiable {
     case projectName
     case fullTitle
@@ -499,29 +682,6 @@ private struct SettingsActionRow: View {
             }
             Spacer()
             Button(buttonTitle, action: action)
-        }
-    }
-}
-
-private struct ShortcutRow: View {
-    let title: String
-    let shortcut: String
-
-    var body: some View {
-        HStack {
-            Text(title)
-                .font(.system(size: 13, weight: .semibold))
-            Spacer()
-            Text(shortcut)
-                .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                .padding(.horizontal, 9)
-                .padding(.vertical, 5)
-                .background(Color(nsColor: .windowBackgroundColor))
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6)
-                        .stroke(Color(nsColor: .separatorColor), lineWidth: 1)
-                )
         }
     }
 }

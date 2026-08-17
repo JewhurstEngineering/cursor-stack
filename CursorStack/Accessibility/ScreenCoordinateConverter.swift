@@ -55,7 +55,8 @@ enum ScreenCoordinateConverter {
         )
     }
 
-    /// Tab strip overlays Cursor's native titlebar so there is one chrome row.
+    /// Places the CursorStack bar directly above Cursor, leaving Cursor's native
+    /// titlebar and command-center search field fully usable.
     static func tabPanelFrame(
         windowFrame: CGRect,
         height: CGFloat,
@@ -64,22 +65,52 @@ enum ScreenCoordinateConverter {
         let height = max(24, height)
         return CGRect(
             x: windowFrame.minX,
-            y: windowFrame.maxY - height,
+            y: windowFrame.maxY,
             width: max(120, windowFrame.width),
             height: height
         )
     }
 
     static func maximizedContentFrame(visibleFrame: CGRect, tabHeight: CGFloat) -> CGRect {
-        visibleFrame
+        let height = max(24, tabHeight)
+        return CGRect(
+            x: visibleFrame.minX,
+            y: visibleFrame.minY,
+            width: visibleFrame.width,
+            height: max(200, visibleFrame.height - height)
+        )
     }
 
-    /// Cursor window shares its top edge with the overlay panel.
+    /// Returns a Cursor frame that leaves enough room for the bar on the screen
+    /// containing most of the window.
+    static func contentFrameLeavingTabRoom(
+        _ windowFrame: CGRect,
+        tabHeight: CGFloat,
+        visibleFrame: CGRect
+    ) -> CGRect {
+        let tabHeight = max(24, tabHeight)
+        let maximumWindowTop = visibleFrame.maxY - tabHeight
+        guard windowFrame.maxY > maximumWindowTop else { return windowFrame }
+
+        let excess = windowFrame.maxY - maximumWindowTop
+        if windowFrame.minY - excess >= visibleFrame.minY {
+            return windowFrame.offsetBy(dx: 0, dy: -excess)
+        }
+
+        return CGRect(
+            x: windowFrame.minX,
+            y: max(windowFrame.minY, visibleFrame.minY),
+            width: windowFrame.width,
+            height: max(200, windowFrame.height - excess)
+        )
+    }
+
+    /// Cursor's top edge sits immediately below the bar.
     static func windowFrame(matchingTabPanel panelFrame: CGRect, windowHeight: CGFloat) -> CGRect {
         let height = max(200, windowHeight)
         return CGRect(
             x: panelFrame.minX,
-            y: panelFrame.maxY - height,
+            y: panelFrame.minY - height,
             width: panelFrame.width,
             height: height
         )
