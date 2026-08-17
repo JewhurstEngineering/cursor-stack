@@ -56,7 +56,7 @@ targets:
         NSUserNotificationAlertStyle: banner
         NSScreenCaptureUsageDescription: CursorStack can optionally capture a small region of Cursor windows to detect attention badges. Nothing is uploaded.
         SUEnableAutomaticChecks: true
-        SUFeedURL: https://github.com/Jewhurst/cursor-stack/releases/latest/download/appcast.xml
+        SUFeedURL: https://github.com/JewhurstEngineering/cursor-stack/releases/latest/download/appcast.xml
         SUPublicEDKey: 83AQiFfYxdEKA1zH9mYW6kdVAuCgD344K2TMrzLwUCY=
     entitlements:
       path: CursorStack/CursorStack.entitlements

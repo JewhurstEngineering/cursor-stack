@@ -35,7 +35,7 @@
 	<key>SUEnableAutomaticChecks</key>
 	<true/>
 	<key>SUFeedURL</key>
-	<string>https://github.com/Jewhurst/cursor-stack/releases/latest/download/appcast.xml</string>
+	<string>https://github.com/JewhurstEngineering/cursor-stack/releases/latest/download/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>83AQiFfYxdEKA1zH9mYW6kdVAuCgD344K2TMrzLwUCY=</string>
 </dict>

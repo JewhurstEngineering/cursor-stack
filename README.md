@@ -8,7 +8,7 @@ Native macOS utility that groups Cursor windows into a logical tabbed stack. Cur
 
 ## Download
 
-Download the latest signed and notarized build from [GitHub Releases](https://github.com/Jewhurst/cursor-stack/releases/latest/download/CursorStack-1.0.0.zip).
+Download the latest signed and notarized build from [GitHub Releases](https://github.com/JewhurstEngineering/cursor-stack/releases/latest/download/CursorStack-1.0.0.zip).
 
 1. Unzip and open CursorStack.
 2. Click **Install to Applications** in Settings.
@@ -46,7 +46,7 @@ Nothing is uploaded. CursorStack has no account or backend and does not read you
 Requirements: Xcode 26+, macOS 14+, and your own Apple Development signing team.
 
 ```bash
-git clone https://github.com/Jewhurst/cursor-stack.git
+git clone https://github.com/JewhurstEngineering/cursor-stack.git
 cd cursor-stack
 open CursorStack.xcodeproj
 ```
