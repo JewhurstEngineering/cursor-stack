@@ -5,19 +5,28 @@ options:
     macOS: "14.0"
   createIntermediateGroups: true
   groupSortPosition: top
+packages:
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    exactVersion: 2.9.6
 settings:
   base:
     SWIFT_VERSION: "5.0"
     MACOSX_DEPLOYMENT_TARGET: "14.0"
     CODE_SIGN_STYLE: Automatic
-    DEVELOPMENT_TEAM: 6998422DKP
-    CODE_SIGN_IDENTITY: "Apple Development"
     ENABLE_HARDENED_RUNTIME: NO
     ENABLE_APP_SANDBOX: NO
     COMBINE_HIDPI_IMAGES: YES
     SWIFT_STRICT_CONCURRENCY: targeted
   configs:
+    Debug:
+      CODE_SIGN_STYLE: Manual
+      DEVELOPMENT_TEAM: 6998422DKP
+      CODE_SIGN_IDENTITY: "Apple Development: James Jewhurst (426V3S4S87)"
     Release:
+      CODE_SIGN_STYLE: Manual
+      DEVELOPMENT_TEAM: 6998422DKP
+      CODE_SIGN_IDENTITY: "Developer ID Application: James Jewhurst (6998422DKP)"
       ENABLE_HARDENED_RUNTIME: YES
       SWIFT_OPTIMIZATION_LEVEL: -O
 targets:
@@ -29,6 +38,8 @@ targets:
         excludes:
           - Resources/Assets.xcassets
       - path: CursorStack/Resources/Assets.xcassets
+    dependencies:
+      - package: Sparkle
     info:
       path: CursorStack/Info.plist
       properties:
@@ -38,10 +49,13 @@ targets:
         CFBundleVersion: "1"
         LSMinimumSystemVersion: "14.0"
         NSHighResolutionCapable: true
-        NSHumanReadableCopyright: "Copyright © 2026"
+        NSHumanReadableCopyright: "Copyright © 2026 James Jewhurst"
         LSApplicationCategoryType: public.app-category.developer-tools
         NSUserNotificationAlertStyle: banner
         NSScreenCaptureUsageDescription: CursorStack can optionally capture a small region of Cursor windows to detect attention badges. Nothing is uploaded.
+        SUEnableAutomaticChecks: true
+        SUFeedURL: https://github.com/Jewhurst/cursor-stack/releases/latest/download/appcast.xml
+        SUPublicEDKey: 83AQiFfYxdEKA1zH9mYW6kdVAuCgD344K2TMrzLwUCY=
     entitlements:
       path: CursorStack/CursorStack.entitlements
     settings:

@@ -1,5 +1,6 @@
 .DS_Store
 build/
+artifacts/
 DerivedData/
 xcuserdata/
 *.xcuserstate
@@ -7,3 +8,6 @@ xcuserdata/
 *.moved-aside
 .swiftpm/
 .cursor/
+*.p12
+AuthKey_*.p8
+sparkle_private_key*

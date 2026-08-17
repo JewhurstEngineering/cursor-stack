@@ -1,9 +1,17 @@
 import AppKit
+import Sparkle
 import SwiftUI
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     static weak var shared: AppDelegate?
     private(set) var controller: ApplicationController!
+#if !DEBUG
+    private let updaterController = SPUStandardUpdaterController(
+        startingUpdater: true,
+        updaterDelegate: nil,
+        userDriverDelegate: nil
+    )
+#endif
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSLog("CursorStack: applicationDidFinishLaunching")
@@ -82,6 +90,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let about = NSMenuItem(title: "About CursorStack", action: #selector(showAbout), keyEquivalent: "")
         about.target = self
         appMenu.addItem(about)
+#if !DEBUG
+        let checkForUpdates = NSMenuItem(
+            title: "Check for Updates…",
+            action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)),
+            keyEquivalent: ""
+        )
+        checkForUpdates.target = updaterController
+        appMenu.addItem(checkForUpdates)
+#endif
         appMenu.addItem(.separator())
         let settingsItem = NSMenuItem(title: "Settings…", action: #selector(showSettings), keyEquivalent: ",")
         settingsItem.target = self

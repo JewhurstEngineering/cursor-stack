@@ -27,10 +27,16 @@
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSHumanReadableCopyright</key>
-	<string>Copyright © 2026</string>
+	<string>Copyright © 2026 James Jewhurst</string>
 	<key>NSScreenCaptureUsageDescription</key>
 	<string>CursorStack can optionally capture a small region of Cursor windows to detect attention badges. Nothing is uploaded.</string>
 	<key>NSUserNotificationAlertStyle</key>
 	<string>banner</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string>https://github.com/Jewhurst/cursor-stack/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>83AQiFfYxdEKA1zH9mYW6kdVAuCgD344K2TMrzLwUCY=</string>
 </dict>
 </plist>
