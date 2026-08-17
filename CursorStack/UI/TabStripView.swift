@@ -18,6 +18,9 @@ struct TabStripView: View {
                     .frame(width: 98)
                     .help("CursorStack")
 
+                StackWindowDragHandle()
+                    .frame(width: 14, height: 24)
+
                 Rectangle()
                     .fill(Color(nsColor: .separatorColor))
                     .frame(width: 1, height: 18)
@@ -40,17 +43,35 @@ struct TabStripView: View {
                                 Button("Switch To") { app.activate(windowID: window.id, in: group.id) }
                                 Button("Move Left") { app.groupManager.reorder(in: group.id, moving: window.id, to: max(0, index - 1)) }
                                 Button("Move Right") { app.groupManager.reorder(in: group.id, moving: window.id, to: index + 1) }
+                                Button("Manage Tab Order…") { app.showGroupOrganizer(groupID: group.id) }
                                 Divider()
                                 Button("Rename Tab…") { app.promptRenameTab(window) }
                                 Divider()
                                 Button("Detach From Group") { app.groupManager.detach(windowID: window.id, from: group.id) }
                                 Button("Close Cursor Window") { app.groupManager.closeCursorWindow(window.id) }
                             }
-                            .onDrop(of: [.text], isTargeted: nil) { providers in
-                                app.handleTabDrop(providers: providers, onto: window.id, in: group.id)
-                            }
                             .onDrag {
-                                NSItemProvider(object: window.id.uuidString as NSString)
+                                app.draggedTabWindowID = window.id
+                                return NSItemProvider(object: window.id.uuidString as NSString)
+                            }
+                            .onDrop(
+                                of: [.text],
+                                delegate: WindowOrderDropDelegate(
+                                    targetWindowID: window.id,
+                                    groupID: group.id,
+                                    app: app,
+                                    draggedWindowID: $app.draggedTabWindowID,
+                                    targetedWindowID: $app.targetedTabWindowID
+                                )
+                            )
+                            .overlay(alignment: .leading) {
+                                if app.targetedTabWindowID == window.id {
+                                    Capsule()
+                                        .fill(Color.accentColor)
+                                        .frame(width: 3)
+                                        .padding(.vertical, 3)
+                                        .offset(x: -2)
+                                }
                             }
                         }
                         ForEach(group.unresolved) { unresolved in
@@ -86,6 +107,7 @@ struct TabStripView: View {
                         app.groupManager.pause(group.id, paused: !group.isPaused)
                     }
                     Button("Rename Group…") { app.promptRenameGroup(group) }
+                    Button("Manage Tab Order…") { app.showGroupOrganizer(groupID: group.id) }
                     Divider()
                     Button("Show All Windows") { app.groupManager.showAllWindows(group.id) }
                     Button("Ungroup All", role: .destructive) { app.groupManager.ungroupAll(group.id) }
@@ -134,9 +156,6 @@ struct TabStripView: View {
                 .help("Open CursorStack Settings")
                 .padding(.trailing, 8)
             }
-            .onDrop(of: [.text], isTargeted: nil) { providers in
-                app.handleTabDrop(providers: providers, onto: group.windows.last?.id, in: group.id)
-            }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(TitlebarBackground())
             .overlay(alignment: .bottom) {
@@ -151,6 +170,7 @@ struct TabStripView: View {
                 Text(group.name).font(.headline)
                 Button("Add Cursor Window…") { app.showWindowPicker(addingTo: group.id) }
                 Button("Rename Group…") { app.promptRenameGroup(group) }
+                Button("Manage Tab Order…") { app.showGroupOrganizer(groupID: group.id) }
                 Button("Maximize Group") { app.groupManager.maximize(group.id) }
                 Button(group.isPaused ? "Resume Synchronization" : "Pause Synchronization") {
                     app.groupManager.pause(group.id, paused: !group.isPaused)

@@ -46,6 +46,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
+    @objc func showGroupOrganizer() {
+        MainActor.assumeIsolated {
+            controller?.showGroupOrganizer()
+        }
+    }
+
     @objc func activateWindowFromGroupMenu(_ sender: NSMenuItem) {
         guard let target = sender.representedObject as? MenuTarget else { return }
         MainActor.assumeIsolated {
@@ -123,6 +129,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             accessibilityDescription: nil
         )
         menu.addItem(newStack)
+
+        let manageGroups = NSMenuItem(
+            title: "Manage Groups and Tab Order…",
+            action: #selector(showGroupOrganizer),
+            keyEquivalent: ""
+        )
+        manageGroups.target = self
+        manageGroups.image = NSImage(
+            systemSymbolName: "list.bullet",
+            accessibilityDescription: nil
+        )
+        menu.addItem(manageGroups)
         menu.addItem(.separator())
 
         if let current {

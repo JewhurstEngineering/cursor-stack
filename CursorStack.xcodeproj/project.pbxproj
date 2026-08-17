@@ -10,6 +10,7 @@
 		058576A438E51E9F29F093F0 /* AppInstall.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71075FB15207179A05076A82 /* AppInstall.swift */; };
 		0915E0A6F4AD1262EFF4055F /* MenuBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E02998E7FEA15FDF5FAFD0BE /* MenuBarController.swift */; };
 		0CD10C8D6112C05DE32ACEAC /* FocusCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD8F48F36EDE864BD63ADBDA /* FocusCoordinator.swift */; };
+		1F73B421A5A29849EF447F83 /* StackWindowDragHandle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 434CD5DCDAC2F6F52D160784 /* StackWindowDragHandle.swift */; };
 		26B55429BA03E734FA4CAB46 /* AXTreeInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F5F6C7237B4C166393AD261 /* AXTreeInspector.swift */; };
 		2F69A3B01871BEB28984CA23 /* ShortcutConflictDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4339F544863CBF12484F8BB0 /* ShortcutConflictDetector.swift */; };
 		38D9DA40D8AFE1D9E214AA23 /* CursorStackLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09A9E16D30C2EF36FDF932E8 /* CursorStackLogicTests.swift */; };
@@ -34,7 +35,9 @@
 		95BE3624627AD9201F5C3AAD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C2028A1CAA3E078B53562B9D /* Assets.xcassets */; };
 		98D95676CDB579C4650269B7 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA33A1CBDEE9C0FC9424DC11 /* main.swift */; };
 		9CD454E7BFC3C5D6CAC00F13 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EF43CCACF7C05E8C4F050C5 /* Models.swift */; };
+		9CFA93CD7406E9F23FEFF839 /* GroupOrganizerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFEE76F750902926AF54EB11 /* GroupOrganizerView.swift */; };
 		A6EE7E723304BA1BEDD6C61A /* WindowPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA93F0FE5D4BC6A98DDF9DED /* WindowPickerView.swift */; };
+		A8D5E06F18BD1087E32EA661 /* WindowOrderDropDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC3845EA1ADD597F876D5CAB /* WindowOrderDropDelegate.swift */; };
 		A98108058AE60F74052F6AB2 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96018878312F3F1148C41D30 /* AppDelegate.swift */; };
 		AE185F1D7E5BDA37C9F40CB7 /* AttentionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEE45FF35F7D641669E924D6 /* AttentionCoordinator.swift */; };
 		B0044856EB28162A0B35F005 /* HotKeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB92254950672B8DF0B2999F /* HotKeyManager.swift */; };
@@ -67,6 +70,7 @@
 		23C1F9C3E1CA9B00F24B6721 /* CursorStackTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CursorStackTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2EF43CCACF7C05E8C4F050C5 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		4339F544863CBF12484F8BB0 /* ShortcutConflictDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutConflictDetector.swift; sourceTree = "<group>"; };
+		434CD5DCDAC2F6F52D160784 /* StackWindowDragHandle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StackWindowDragHandle.swift; sourceTree = "<group>"; };
 		4D1C4DE45A1E3F39856257E0 /* GroupStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupStore.swift; sourceTree = "<group>"; };
 		4F5F94840B84018FB2AAD25E /* NotificationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationCoordinator.swift; sourceTree = "<group>"; };
 		539F664BCE319DF0684772A3 /* ScreenCoordinateConverter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCoordinateConverter.swift; sourceTree = "<group>"; };
@@ -91,8 +95,10 @@
 		AEE45FF35F7D641669E924D6 /* AttentionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttentionCoordinator.swift; sourceTree = "<group>"; };
 		BA93F0FE5D4BC6A98DDF9DED /* WindowPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowPickerView.swift; sourceTree = "<group>"; };
 		BD8CF37849C5C72C5FDB0BF1 /* AppSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsStore.swift; sourceTree = "<group>"; };
+		BFEE76F750902926AF54EB11 /* GroupOrganizerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupOrganizerView.swift; sourceTree = "<group>"; };
 		C2028A1CAA3E078B53562B9D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CA33A1CBDEE9C0FC9424DC11 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		CC3845EA1ADD597F876D5CAB /* WindowOrderDropDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowOrderDropDelegate.swift; sourceTree = "<group>"; };
 		CD8F48F36EDE864BD63ADBDA /* FocusCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusCoordinator.swift; sourceTree = "<group>"; };
 		CE644E02EC835854B78448DB /* AXHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AXHelpers.swift; sourceTree = "<group>"; };
 		D5E5BC558FEDC273B7BB9FBB /* GroupTabPanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupTabPanelController.swift; sourceTree = "<group>"; };
@@ -190,14 +196,17 @@
 			isa = PBXGroup;
 			children = (
 				71B13E44672A6091DB3592D6 /* Branding.swift */,
+				BFEE76F750902926AF54EB11 /* GroupOrganizerView.swift */,
 				D5E5BC558FEDC273B7BB9FBB /* GroupTabPanelController.swift */,
 				0476704D086310E590BEF3A8 /* InspectorView.swift */,
 				E02998E7FEA15FDF5FAFD0BE /* MenuBarController.swift */,
 				F1398C32D7FFB0D4E810C736 /* OnboardingView.swift */,
 				950858CEBA0AEB2340B82DF8 /* SettingsView.swift */,
 				F536A29FC913B8B0EDAB6729 /* ShortcutRecorder.swift */,
+				434CD5DCDAC2F6F52D160784 /* StackWindowDragHandle.swift */,
 				8D8CEB3C5DA8D0BE0902E428 /* TabStripView.swift */,
 				7A34CE630CC793E589A570D2 /* WindowLabView.swift */,
+				CC3845EA1ADD597F876D5CAB /* WindowOrderDropDelegate.swift */,
 				BA93F0FE5D4BC6A98DDF9DED /* WindowPickerView.swift */,
 			);
 			path = UI;
@@ -375,6 +384,7 @@
 				75B3373867B3FFBC6C6FCF0A /* Debouncer.swift in Sources */,
 				0CD10C8D6112C05DE32ACEAC /* FocusCoordinator.swift in Sources */,
 				46520B85AF22150A19D0AC47 /* GroupManager.swift in Sources */,
+				9CFA93CD7406E9F23FEFF839 /* GroupOrganizerView.swift in Sources */,
 				70C2C7ECDD30D897D5C66A6A /* GroupStore.swift in Sources */,
 				94D5AC272690BFDA8D373DD8 /* GroupTabPanelController.swift in Sources */,
 				B0044856EB28162A0B35F005 /* HotKeyManager.swift in Sources */,
@@ -390,10 +400,12 @@
 				6EAB49294CBF2375E002C529 /* SettingsView.swift in Sources */,
 				2F69A3B01871BEB28984CA23 /* ShortcutConflictDetector.swift in Sources */,
 				C2988AB696E6FE9CA29DDD4F /* ShortcutRecorder.swift in Sources */,
+				1F73B421A5A29849EF447F83 /* StackWindowDragHandle.swift in Sources */,
 				6C3CDD3B72DE21D9D8D3D733 /* TabStripView.swift in Sources */,
 				39248908A2AF0FD0C6935B40 /* VisualAttentionProvider.swift in Sources */,
 				C8D38D84508B267C688D3A1B /* WindowLabView.swift in Sources */,
 				8A8543CC2EF04E0D9FA51CC3 /* WindowMatcher.swift in Sources */,
+				A8D5E06F18BD1087E32EA661 /* WindowOrderDropDelegate.swift in Sources */,
 				A6EE7E723304BA1BEDD6C61A /* WindowPickerView.swift in Sources */,
 				EF9E48DB0827743A464EC195 /* WindowTitleParser.swift in Sources */,
 				98D95676CDB579C4650269B7 /* main.swift in Sources */,

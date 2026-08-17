@@ -233,6 +233,9 @@ final class GroupLogicTests: XCTestCase {
         let b = UUID()
         let c = UUID()
         XCTAssertEqual(GroupLogic.reorder(ids: [a, b, c], moving: c, to: 0), [c, a, b])
+        XCTAssertEqual(GroupLogic.reorder(ids: [a, b, c], moving: a, to: 1), [b, a, c])
+        XCTAssertEqual(GroupLogic.reorder(ids: [a, b, c], moving: b, to: 2), [a, c, b])
+        XCTAssertEqual(GroupLogic.reorder(ids: [a, b, c], moving: a, to: 99), [b, c, a])
     }
 }
 

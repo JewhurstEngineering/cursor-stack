@@ -1,8 +1,13 @@
 import AppKit
 import SwiftUI
 
-final class MovableHostingView<Content: View>: NSHostingView<Content> {
-    override var mouseDownCanMoveWindow: Bool { true }
+final class TabHostingView<Content: View>: NSHostingView<Content> {
+    override var mouseDownCanMoveWindow: Bool { false }
+
+    override func mouseDown(with event: NSEvent) {
+        NSApp.activate()
+        super.mouseDown(with: event)
+    }
 }
 
 final class TabChromePanel: NSPanel {
@@ -14,7 +19,7 @@ final class TabChromePanel: NSPanel {
 final class GroupTabPanelController: NSObject, NSWindowDelegate {
     let groupID: UUID
     private let window: TabChromePanel
-    private let hosting: MovableHostingView<TabStripView>
+    private let hosting: TabHostingView<TabStripView>
     private weak var app: ApplicationController?
     private var isAligning = false
     private var isHidden = true
@@ -25,7 +30,7 @@ final class GroupTabPanelController: NSObject, NSWindowDelegate {
         self.groupID = group.id
         self.app = app
         let root = TabStripView(group: group, app: app)
-        let hosting = MovableHostingView(rootView: root)
+        let hosting = TabHostingView(rootView: root)
         self.hosting = hosting
 
         let window = TabChromePanel(
@@ -44,7 +49,7 @@ final class GroupTabPanelController: NSObject, NSWindowDelegate {
         window.hidesOnDeactivate = false
         window.ignoresMouseEvents = false
         window.isMovable = true
-        window.isMovableByWindowBackground = true
+        window.isMovableByWindowBackground = false
         window.animationBehavior = .none
         window.isExcludedFromWindowsMenu = true
         window.contentView = hosting

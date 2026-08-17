@@ -29,6 +29,7 @@ final class ApplicationController: NSObject, ObservableObject {
     private var permissionTimer: Timer?
     private var settingsWindow: NSWindow?
     private var pickerWindow: NSWindow?
+    private var groupOrganizerWindow: NSWindow?
     private var onboardingWindow: NSWindow?
     private var inspectorWindow: NSWindow?
     private var labWindow: NSWindow?
@@ -38,6 +39,8 @@ final class ApplicationController: NSObject, ObservableObject {
 
     @Published var permissionGranted = false
     @Published var pickerTargetGroupID: UUID?
+    @Published var draggedTabWindowID: UUID?
+    @Published var targetedTabWindowID: UUID?
     var pendingReconnect: PersistedWindowReference?
 
     var tabHeight: CGFloat { settingsStore.settings.tabHeight }
@@ -168,6 +171,16 @@ final class ApplicationController: NSObject, ObservableObject {
     func showSettings() {
         let view = SettingsView(app: self)
         present(window: &settingsWindow, title: "CursorStack Settings", size: NSSize(width: 760, height: 620), view: AnyView(view))
+    }
+
+    func showGroupOrganizer(groupID: UUID? = nil) {
+        let view = GroupOrganizerView(app: self, selectedGroupID: groupID)
+        present(
+            window: &groupOrganizerWindow,
+            title: "Manage CursorStack Groups",
+            size: NSSize(width: 620, height: 520),
+            view: AnyView(view)
+        )
     }
 
     func showInspector() {
@@ -372,8 +385,24 @@ final class ApplicationController: NSObject, ObservableObject {
         if discovery.isCursor(front) {
             return true
         }
-        return front.processIdentifier == NSRunningApplication.current.processIdentifier
-            && Date() < keepChromeVisibleUntil
+        guard front.processIdentifier == NSRunningApplication.current.processIdentifier else {
+            return false
+        }
+        if Date() < keepChromeVisibleUntil {
+            return true
+        }
+        return !hasVisibleAuxiliaryWindow
+    }
+
+    private var hasVisibleAuxiliaryWindow: Bool {
+        [
+            settingsWindow,
+            pickerWindow,
+            groupOrganizerWindow,
+            onboardingWindow,
+            inspectorWindow,
+            labWindow,
+        ].contains { $0?.isVisible == true }
     }
 
     private func handleAXEvent(pid: pid_t, element: AXUIElement, notification: String) {

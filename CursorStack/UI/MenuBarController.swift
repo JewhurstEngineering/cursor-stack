@@ -77,6 +77,7 @@ final class MenuBarController: NSObject {
 
         menu.addItem(.separator())
         menu.addItem(menuItem("Manage Windows…", #selector(showPicker)))
+        menu.addItem(menuItem("Manage Groups and Tab Order…", #selector(showGroupOrganizer)))
         menu.addItem(menuItem("Window Lab", #selector(showLab)))
         menu.addItem(menuItem("Settings…", #selector(showSettings)))
         menu.addItem(.separator())
@@ -107,6 +108,10 @@ final class MenuBarController: NSObject {
 
     @objc private func showLab() {
         app?.showWindowLab()
+    }
+
+    @objc private func showGroupOrganizer() {
+        app?.showGroupOrganizer()
     }
 
     @objc private func showSettings() {

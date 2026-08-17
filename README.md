@@ -49,6 +49,8 @@ Notarization needs your Developer ID and a `notarytool` keychain profile. The sc
 
 **Settings** is under CursorStack → Settings… (`⌘,`), or the menu bar icon → Settings…. General includes installation in Applications, launch at login, the menu bar icon, and the Dock icon. Other tabs cover tab height, shortcuts, and attention.
 
+Drag tabs directly to reorder them, or open **Manage Groups and Tab Order…** from the Group menu, menu bar icon, or a tab’s context menu. Use the small grip beside the CursorStack logo when you want to move the whole stack.
+
 ## Shortcuts
 
 These global shortcuts can be changed under **Settings → Shortcuts**. CursorStack warns about duplicate assignments and common macOS conflicts.
