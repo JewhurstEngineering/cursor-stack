@@ -5,7 +5,7 @@ final class MovableHostingView<Content: View>: NSHostingView<Content> {
     override var mouseDownCanMoveWindow: Bool { true }
 }
 
-final class TabChromeWindow: NSWindow {
+final class TabChromePanel: NSPanel {
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
 }
@@ -13,10 +13,11 @@ final class TabChromeWindow: NSWindow {
 @MainActor
 final class GroupTabPanelController: NSObject, NSWindowDelegate {
     let groupID: UUID
-    private let window: TabChromeWindow
+    private let window: TabChromePanel
     private let hosting: MovableHostingView<TabStripView>
     private weak var app: ApplicationController?
     private var isAligning = false
+    private var isHidden = true
     private(set) var isUserMoving = false
     private let moveEndDebouncer = Debouncer(delay: 0.16)
 
@@ -27,12 +28,14 @@ final class GroupTabPanelController: NSObject, NSWindowDelegate {
         let hosting = MovableHostingView(rootView: root)
         self.hosting = hosting
 
-        let window = TabChromeWindow(
+        let window = TabChromePanel(
             contentRect: NSRect(x: 0, y: 0, width: 640, height: 36),
-            styleMask: [.borderless],
+            styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
+        window.isFloatingPanel = true
+        window.becomesKeyOnlyIfNeeded = true
         window.level = .floating
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
         window.isOpaque = true
@@ -50,6 +53,7 @@ final class GroupTabPanelController: NSObject, NSWindowDelegate {
         align(to: group.synchronizedFrame, tabHeight: app.settingsStore.settings.tabHeight)
         refreshContent()
         window.orderFrontRegardless()
+        isHidden = false
         window.delegate = self
         if CSLog.debugEnabled {
             CSLog.ui.info(
@@ -92,6 +96,8 @@ final class GroupTabPanelController: NSObject, NSWindowDelegate {
     }
 
     func setHidden(_ hidden: Bool) {
+        guard hidden != isHidden else { return }
+        isHidden = hidden
         if hidden {
             window.orderOut(nil)
         } else {
@@ -110,6 +116,7 @@ final class GroupTabPanelController: NSObject, NSWindowDelegate {
 
     func close() {
         moveEndDebouncer.cancel()
+        isHidden = true
         window.delegate = nil
         window.orderOut(nil)
         window.close()

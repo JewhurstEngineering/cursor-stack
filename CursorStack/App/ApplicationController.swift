@@ -34,6 +34,7 @@ final class ApplicationController: NSObject, ObservableObject {
     private var labWindow: NSWindow?
     private var menuBar: MenuBarController?
     private var newWindowPrompted = Set<UUID>()
+    private var keepChromeVisibleUntil = Date.distantPast
 
     @Published var permissionGranted = false
     @Published var pickerTargetGroupID: UUID?
@@ -149,6 +150,7 @@ final class ApplicationController: NSObject, ObservableObject {
     }
 
     func activate(windowID: UUID, in groupID: UUID) {
+        keepChromeVisibleUntil = Date().addingTimeInterval(0.6)
         groupManager.activate(windowID: windowID, in: groupID)
         if let window = groupManager.group(containing: windowID)?.windows.first(where: { $0.id == windowID }) {
             attention.markViewedIfAppropriate(window)
@@ -367,7 +369,11 @@ final class ApplicationController: NSObject, ObservableObject {
 
     private var shouldShowChrome: Bool {
         guard let front = NSWorkspace.shared.frontmostApplication else { return false }
-        return discovery.isCursor(front)
+        if discovery.isCursor(front) {
+            return true
+        }
+        return front.processIdentifier == NSRunningApplication.current.processIdentifier
+            && Date() < keepChromeVisibleUntil
     }
 
     private func handleAXEvent(pid: pid_t, element: AXUIElement, notification: String) {
