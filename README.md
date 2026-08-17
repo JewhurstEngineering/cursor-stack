@@ -47,7 +47,7 @@ Notarization needs your Developer ID and a `notarytool` keychain profile. The sc
 3. Create a group from the menu bar icon or the picker.
 4. The tab strip sits above Cursor’s native titlebar (quit / minimize / fill-screen, tabs, Add, and Settings), so Cursor’s search field remains usable. Clicking another app hides it like a normal window. The red close button quits CursorStack; Cursor windows stay open.
 
-**Settings** is under CursorStack → Settings… (`⌘,`), or the menu bar icon → Settings…. General includes installation in Applications, launch at login, the menu bar icon, and the Dock icon. Other tabs cover tab height, shortcuts, and attention.
+**Settings** is under CursorStack → Settings… (`⌘,`), or the menu bar icon → Settings…. General includes installation in Applications, launch at login, the menu bar icon, and the Dock icon. Tabs includes app-wide System / Light / Dark appearance, tab height, names, and ordering. Other sections cover shortcuts and attention.
 
 Drag tabs directly to reorder them, or open **Manage Groups and Tab Order…** from the Group menu, menu bar icon, or a tab’s context menu. Use the small grip beside the CursorStack logo when you want to move the whole stack.
 
