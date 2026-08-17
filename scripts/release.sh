@@ -54,9 +54,32 @@ if [[ "$CONFIGURATION" != "Release" ]]; then
   exit 0
 fi
 
+SPARKLE_FRAMEWORK="$APP/Contents/Frameworks/Sparkle.framework"
+SPARKLE_VERSION="$SPARKLE_FRAMEWORK/Versions/B"
+codesign --force --sign "$DEVELOPER_ID" --options runtime --timestamp \
+  "$SPARKLE_VERSION/XPCServices/Installer.xpc"
+codesign --force --sign "$DEVELOPER_ID" --options runtime --timestamp \
+  --preserve-metadata=entitlements \
+  "$SPARKLE_VERSION/XPCServices/Downloader.xpc"
+codesign --force --sign "$DEVELOPER_ID" --options runtime --timestamp \
+  "$SPARKLE_VERSION/Autoupdate"
+codesign --force --sign "$DEVELOPER_ID" --options runtime --timestamp \
+  "$SPARKLE_VERSION/Updater.app"
+codesign --force --sign "$DEVELOPER_ID" --options runtime --timestamp \
+  "$SPARKLE_FRAMEWORK"
+codesign --force --sign "$DEVELOPER_ID" --options runtime --timestamp \
+  --entitlements "$ROOT/CursorStack/CursorStack.entitlements" \
+  "$APP"
+
 SIGNING_AUTHORITY="$(codesign -dvv "$APP" 2>&1)"
 [[ "$SIGNING_AUTHORITY" == *"Authority=$DEVELOPER_ID"* ]] || fail \
   "Release app was not signed with '$DEVELOPER_ID'."
+[[ "$SIGNING_AUTHORITY" == *"Timestamp="* ]] || fail \
+  "Release app signature is missing a secure timestamp."
+
+APP_ENTITLEMENTS="$(codesign -d --entitlements - "$APP" 2>/dev/null)"
+[[ "$APP_ENTITLEMENTS" != *"com.apple.security.get-task-allow"* ]] || fail \
+  "Release app still contains the development-only get-task-allow entitlement."
 
 codesign --verify --deep --strict --verbose=2 "$APP"
 
@@ -79,9 +102,18 @@ NOTARY_ZIP="$STAGING/CursorStack-notary.zip"
 ditto -c -k --sequesterRsrc --keepParent "$APP" "$NOTARY_ZIP"
 
 print "Submitting CursorStack $VERSION ($BUILD_NUMBER) for notarization…"
+NOTARY_RESULT="$STAGING/notary-result.json"
 xcrun notarytool submit "$NOTARY_ZIP" \
   --keychain-profile "$NOTARY_PROFILE" \
-  --wait
+  --wait \
+  --output-format json > "$NOTARY_RESULT"
+
+NOTARY_STATUS="$(plutil -extract status raw -o - "$NOTARY_RESULT")"
+SUBMISSION_ID="$(plutil -extract id raw -o - "$NOTARY_RESULT")"
+if [[ "$NOTARY_STATUS" != "Accepted" ]]; then
+  xcrun notarytool log "$SUBMISSION_ID" --keychain-profile "$NOTARY_PROFILE" || true
+  fail "Apple notarization returned '$NOTARY_STATUS' for submission $SUBMISSION_ID."
+fi
 
 xcrun stapler staple "$APP"
 xcrun stapler validate "$APP"
