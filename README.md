@@ -4,50 +4,85 @@
   <img src="images/cursorstack-logo-full-color.png" alt="CursorStack" width="520">
 </p>
 
-Native macOS utility that groups Cursor windows into a logical tabbed stack. It does **not** embed Cursor. It aligns real Cursor windows beneath a dedicated tab strip.
+Native macOS utility that groups Cursor windows into a logical tabbed stack. CursorStack does not embed or modify Cursor; it aligns real Cursor windows beneath a dedicated tab strip.
 
-This app is **not App Sandboxed**. Accessibility window control cannot run inside Apple App Sandbox. Ship it as a signed, notarized direct download — not the Mac App Store.
+## Download
+
+Download the latest signed and notarized build from [GitHub Releases](https://github.com/Jewhurst/cursor-stack/releases/latest/download/CursorStack-1.0.0.zip).
+
+1. Unzip and open CursorStack.
+2. Click **Install to Applications** in Settings.
+3. Grant Accessibility permission when prompted.
+
+CursorStack checks GitHub Releases for signed updates using [Sparkle](https://sparkle-project.org/). Update archives are independently verified before installation.
+
+## What it looks like
+
+<p align="center">
+  <img src="images/cursorstack-settings.png" alt="CursorStack General settings" width="760">
+</p>
+
+<p align="center">
+  <img src="images/cursorstack-onboarding.png" alt="CursorStack Accessibility onboarding" width="680">
+</p>
 
 ## Requirements
 
-- macOS 14+
-- Xcode 26+
+- macOS 14 or newer
+- Apple silicon Mac
+- Cursor
 - Accessibility permission
 - Optional: Notifications
 - Optional: Screen Recording for experimental visual attention detection
 
-## Build
+## How it works
+
+CursorStack uses macOS Accessibility APIs to discover, move, resize, and focus Cursor windows. It is intentionally **not App Sandboxed** because sandboxed apps cannot control windows owned by another process. Releases use Hardened Runtime, Developer ID signing, and Apple notarization.
+
+Nothing is uploaded. CursorStack has no account or backend and does not read your source code. The only network request is Sparkle checking the public GitHub release feed for updates.
+
+## Build from source
+
+Requirements: Xcode 26+, macOS 14+, and your own Apple Development signing team.
 
 ```bash
-cd /path/to/cursor-stack
-xcodegen generate
+git clone https://github.com/Jewhurst/cursor-stack.git
+cd cursor-stack
 open CursorStack.xcodeproj
 ```
 
-Or:
+Select your signing team in Xcode, then build the `CursorStack` scheme. The committed Xcode project is ready to use.
+
+Maintainers can regenerate it from [`project.yml`](project.yml):
+
+```bash
+xcodegen generate
+```
+
+For a command-line Debug build:
 
 ```bash
 ./scripts/release.sh Debug
 open build/Build/Products/Debug/CursorStack.app
 ```
 
-Release (local, hardened runtime, still unsandboxed):
+The maintainer Release build requires a Developer ID Application certificate, a local `notarytool` profile named `notary`, and the CursorStack Sparkle key in the login keychain:
 
 ```bash
-chmod +x scripts/release.sh
 ./scripts/release.sh Release
 ```
 
-Notarization needs your Developer ID and a `notarytool` keychain profile. The script prints the exact commands.
+The script signs, notarizes, staples, verifies, and writes the update ZIP and `appcast.xml` to `artifacts/`. Credentials and private keys are never stored in this repository.
 
-## First launch
+## Usage
 
-1. Run CursorStack and grant Accessibility.
-2. Open several Cursor project windows.
-3. Create a group from the menu bar icon or the picker.
-4. The tab strip sits above Cursor’s native titlebar (quit / minimize / fill-screen, tabs, Add, and Settings), so Cursor’s search field remains usable. Clicking another app hides it like a normal window. The red close button quits CursorStack; Cursor windows stay open.
+1. Open several Cursor project windows.
+2. Create a stack from the menu bar icon or window picker.
+3. Click tabs or use global shortcuts to switch projects.
 
-**Settings** is under CursorStack → Settings… (`⌘,`), or the menu bar icon → Settings…. General includes installation in Applications, launch at login, the menu bar icon, and the Dock icon. Tabs includes app-wide System / Light / Dark appearance, tab height, names, and ordering. Other sections cover shortcuts and attention.
+The tab strip sits above Cursor’s native title bar, so Cursor’s search field remains usable. Clicking another app hides it like a normal window. Closing CursorStack leaves Cursor windows open.
+
+**Settings** is under CursorStack → Settings… (`⌘,`) or the menu bar icon → Settings…. It includes installation, launch at login, appearance, tab ordering, shortcuts, attention, and diagnostics.
 
 Drag tabs directly to reorder them, or open **Manage Groups and Tab Order…** from the Group menu, menu bar icon, or a tab’s context menu. Use the small grip beside the CursorStack logo when you want to move the whole stack.
 
@@ -67,3 +102,11 @@ These global shortcuts can be changed under **Settings → Shortcuts**. CursorSt
 - Dashed tabs are saved windows that need **Reconnect** after Cursor restarts
 - Attention is best-effort (Accessibility, then titles, then optional visual capture)
 - Nothing is uploaded. No account.
+
+## Project status
+
+CursorStack is an independent open-source project and is not affiliated with, endorsed by, or sponsored by Anysphere or Cursor. Cursor is a trademark of its respective owner.
+
+## License
+
+[MIT](LICENSE)
