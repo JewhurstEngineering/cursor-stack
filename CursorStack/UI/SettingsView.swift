@@ -35,7 +35,7 @@ struct SettingsView: View {
     private var sidebar: some View {
         VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 5) {
-                BrandNameLogo(width: 146, style: .color)
+                BrandNameLogo(width: 146, style: .adaptive)
                 Text("Window groups for Cursor")
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(.secondary)
@@ -133,6 +133,19 @@ struct SettingsView: View {
         )
     }
 
+    private var appAppearance: Binding<AppAppearance> {
+        Binding(
+            get: { settingsStore.settings.effectiveAppAppearance },
+            set: { appearance in
+                var updated = settingsStore.settings
+                updated.appAppearance = appearance == .system ? nil : appearance
+                updated.tabBarAppearance = nil
+                settingsStore.settings = updated
+                app.applySettingsSideEffects()
+            }
+        )
+    }
+
     private var general: some View {
         VStack(spacing: 16) {
             SettingsCard(title: "Installation", symbol: "square.and.arrow.down") {
@@ -220,6 +233,23 @@ struct SettingsView: View {
     private var tabs: some View {
         VStack(spacing: 16) {
             SettingsCard(title: "Appearance", symbol: "rectangle.topthird.inset.filled") {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("CursorStack appearance")
+                        .font(.system(size: 13, weight: .semibold))
+                    Picker("CursorStack appearance", selection: appAppearance) {
+                        ForEach(AppAppearance.allCases) { appearance in
+                            Text(appearance.title).tag(appearance)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
+                    Text("Applies to the stack bar, Settings, menus, pickers, and popups. System follows macOS.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Divider()
+
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Tab bar height")
                         .font(.system(size: 13, weight: .semibold))

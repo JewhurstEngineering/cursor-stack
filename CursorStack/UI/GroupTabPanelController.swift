@@ -97,6 +97,7 @@ final class GroupTabPanelController: NSObject, NSWindowDelegate {
     func refreshContent() {
         guard let app,
               let group = app.groupManager.groups.first(where: { $0.id == groupID }) else { return }
+        window.appearance = nil
         hosting.rootView = TabStripView(group: group, app: app)
     }
 

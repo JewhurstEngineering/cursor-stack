@@ -20,7 +20,7 @@ struct GroupOrganizerView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 5) {
-                BrandNameLogo(width: 190, style: .color)
+                BrandNameLogo(width: 190, style: .adaptive)
                 Text("Arrange projects in each stack")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(.secondary)

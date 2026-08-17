@@ -6,7 +6,7 @@ struct OnboardingView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
             VStack(alignment: .leading, spacing: 5) {
-                BrandNameLogo(width: 250, style: .color)
+                BrandNameLogo(width: 250, style: .adaptive)
                 Text("Your Cursor projects, one tab away")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(.secondary)

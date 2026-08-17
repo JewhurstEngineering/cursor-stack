@@ -12,7 +12,7 @@ struct WindowPickerView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 5) {
-                BrandNameLogo(width: 210, style: .color)
+                BrandNameLogo(width: 210, style: .adaptive)
                 Text("Turn Cursor windows into one tabbed stack")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(.secondary)

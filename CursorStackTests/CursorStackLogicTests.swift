@@ -215,6 +215,24 @@ final class ShortcutSettingsTests: XCTestCase {
         let decoded = try JSONDecoder().decode(AppSettings.self, from: data)
 
         XCTAssertEqual(decoded.effectiveNumberedTabHotKey, .numberedTabModifiers)
+        XCTAssertEqual(decoded.effectiveAppAppearance, .system)
+    }
+
+    func testAppAppearanceRoundTrips() throws {
+        var settings = AppSettings()
+        settings.appAppearance = .dark
+
+        let data = try JSONEncoder().encode(settings)
+        let decoded = try JSONDecoder().decode(AppSettings.self, from: data)
+
+        XCTAssertEqual(decoded.effectiveAppAppearance, .dark)
+    }
+
+    func testLegacyTabBarAppearanceMigratesToAppAppearance() {
+        var settings = AppSettings()
+        settings.tabBarAppearance = .dark
+
+        XCTAssertEqual(settings.effectiveAppAppearance, .dark)
     }
 }
 

@@ -225,12 +225,30 @@ struct HotKeySpec: Codable, Equatable {
     }
 }
 
+enum AppAppearance: String, Codable, CaseIterable, Identifiable {
+    case system
+    case light
+    case dark
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .system: "System"
+        case .light: "Light"
+        case .dark: "Dark"
+        }
+    }
+}
+
 struct AppSettings: Codable, Equatable {
     var launchAtLogin: Bool = false
     var showMenuBarIcon: Bool = true
     var showDockIcon: Bool = true
 
     var tabHeight: CGFloat = 36
+    var appAppearance: AppAppearance?
+    var tabBarAppearance: AppAppearance?
     var showProjectName: Bool = true
     var showFullTitle: Bool = false
 
@@ -251,6 +269,10 @@ struct AppSettings: Codable, Equatable {
 
     var effectiveNumberedTabHotKey: HotKeySpec {
         numberedTabHotKey ?? .numberedTabModifiers
+    }
+
+    var effectiveAppAppearance: AppAppearance {
+        appAppearance ?? tabBarAppearance ?? .system
     }
 }
 

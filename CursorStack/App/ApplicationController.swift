@@ -46,6 +46,7 @@ final class ApplicationController: NSObject, ObservableObject {
     var tabHeight: CGFloat { settingsStore.settings.tabHeight }
 
     func start() {
+        applyAppAppearance()
         applyActivationPolicy()
         groupManager.delegate = self
         attention.configure()
@@ -283,6 +284,7 @@ final class ApplicationController: NSObject, ObservableObject {
     }
 
     func applySettingsSideEffects() {
+        applyAppAppearance()
         attention.applySettings(settingsStore.settings)
         hotKeys?.update(settings: settingsStore.settings)
         applyActivationPolicy()
@@ -478,6 +480,17 @@ final class ApplicationController: NSObject, ObservableObject {
     private func applyActivationPolicy() {
         NSApp.setActivationPolicy(settingsStore.settings.showDockIcon ? .regular : .accessory)
         menuBar?.reload()
+    }
+
+    private func applyAppAppearance() {
+        switch settingsStore.settings.effectiveAppAppearance {
+        case .system:
+            NSApp.appearance = nil
+        case .light:
+            NSApp.appearance = NSAppearance(named: .aqua)
+        case .dark:
+            NSApp.appearance = NSAppearance(named: .darkAqua)
+        }
     }
 
     private func showOnboarding() {

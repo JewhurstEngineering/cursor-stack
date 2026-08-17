@@ -14,21 +14,34 @@ enum BrandImage {
 }
 
 enum BrandMarkStyle {
+    case adaptive
     case color
     case monochrome
 }
 
 struct BrandMark: View {
+    @Environment(\.colorScheme) private var colorScheme
     var size: CGFloat = 64
     var style: BrandMarkStyle = .color
 
     var body: some View {
-        Image(style == .color ? BrandImage.squareColor : BrandImage.squareMono)
+        Image(imageName)
             .resizable()
             .interpolation(.high)
             .scaledToFit()
             .frame(width: size, height: size)
             .accessibilityHidden(true)
+    }
+
+    private var imageName: String {
+        switch style {
+        case .adaptive:
+            colorScheme == .dark ? BrandImage.squareMono : BrandImage.squareColor
+        case .color:
+            BrandImage.squareColor
+        case .monochrome:
+            BrandImage.squareMono
+        }
     }
 }
 
@@ -57,21 +70,33 @@ struct BrandLockup: View {
 }
 
 struct BrandNameLogo: View {
+    @Environment(\.colorScheme) private var colorScheme
     var width: CGFloat = 160
     var style: BrandMarkStyle = .monochrome
 
     var body: some View {
-        Image(style == .color ? BrandImage.nameColor : BrandImage.nameMono)
+        Image(imageName)
             .resizable()
             .interpolation(.high)
             .scaledToFit()
             .frame(width: width)
             .accessibilityLabel("CursorStack")
     }
+
+    private var imageName: String {
+        switch style {
+        case .adaptive:
+            colorScheme == .dark ? BrandImage.nameWhite : BrandImage.nameColor
+        case .color:
+            BrandImage.nameColor
+        case .monochrome:
+            colorScheme == .dark ? BrandImage.nameWhite : BrandImage.nameBlack
+        }
+    }
 }
 
 struct StackBarBrandMark: View {
     var body: some View {
-        BrandNameLogo(width: 96, style: .color)
+        BrandNameLogo(width: 96, style: .adaptive)
     }
 }
