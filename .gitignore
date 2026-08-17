@@ -8,6 +8,7 @@ xcuserdata/
 *.moved-aside
 .swiftpm/
 .cursor/
+CursorStack-PRD.md
 *.p12
 AuthKey_*.p8
 sparkle_private_key*
