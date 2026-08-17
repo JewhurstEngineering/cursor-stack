@@ -252,6 +252,16 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+
+            SettingsCard(title: "Group and tab order", symbol: "list.bullet") {
+                SettingsActionRow(
+                    title: "Arrange tabs across your stacks",
+                    detail: "Drag tabs into order, use precise move controls, or move a tab to another stack.",
+                    buttonTitle: "Manage Groups…"
+                ) {
+                    app.showGroupOrganizer()
+                }
+            }
         }
     }
 
@@ -512,6 +522,7 @@ struct SettingsView: View {
                     }
                 }
             }
+
         }
     }
 }

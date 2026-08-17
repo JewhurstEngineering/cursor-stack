@@ -109,7 +109,6 @@ final class ApplicationController: NSObject, ObservableObject {
             name: NSWorkspace.didTerminateApplicationNotification,
             object: nil
         )
-
         permissionGranted = permissionManager.isTrusted
         if permissionGranted {
             beginWindowManagement()
