@@ -1,4 +1,4 @@
-# CursorStack
+# JamesWare CursorStack
 
 <p align="center">
   <img src="images/cursorstack-logo-full-color.png" alt="CursorStack" width="520">
