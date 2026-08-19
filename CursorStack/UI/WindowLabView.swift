@@ -51,7 +51,7 @@ struct WindowLabView: View {
                     }
                 }
                 Spacer()
-                Button("Re-scan") { app.groupManager.refreshFromAccessibility() }
+                Button("Re-scan") { _ = app.rescanCursorWindows() }
             }
         }
         .padding(20)

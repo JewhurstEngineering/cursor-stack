@@ -142,6 +142,7 @@ final class ApplicationController: NSObject, ObservableObject {
             name: Notification.Name("com.apple.screenIsUnlocked"),
             object: nil
         )
+        _ = AppInstall.clearQuarantine()
         permissionGranted = permissionManager.isTrusted
         if permissionGranted {
             beginWindowManagement()
@@ -202,9 +203,16 @@ final class ApplicationController: NSObject, ObservableObject {
         realignPanels()
     }
 
+    @discardableResult
+    func rescanCursorWindows() -> WindowRefreshOutcome {
+        let outcome = groupManager.refreshFromAccessibility()
+        objectWillChange.send()
+        return outcome
+    }
+
     func showWindowPicker(addingTo groupID: UUID?) {
         pickerTargetGroupID = groupID
-        groupManager.refreshFromAccessibility()
+        _ = rescanCursorWindows()
         let view = WindowPickerView(app: self)
         present(window: &pickerWindow, title: "CursorStack", size: NSSize(width: 500, height: 560), view: AnyView(view))
     }
@@ -230,7 +238,7 @@ final class ApplicationController: NSObject, ObservableObject {
     }
 
     func showWindowLab() {
-        groupManager.refreshFromAccessibility()
+        _ = rescanCursorWindows()
         let view = WindowLabView(app: self)
         present(window: &labWindow, title: "CursorStack Window Lab", size: NSSize(width: 480, height: 420), view: AnyView(view))
     }
@@ -556,12 +564,27 @@ final class ApplicationController: NSObject, ObservableObject {
         let alert = NSAlert()
         alert.messageText = "macOS still hasn’t given this copy access"
         alert.informativeText = """
-        Quit CursorStack completely, then open it again from Applications.
+        macOS can show CursorStack as On while still blocking this copy. That happens when leftover Accessibility entries from older builds (Debug vs signed) are still in the list.
 
-        If the welcome screen comes back, remove CursorStack from the Accessibility list, click +, add this app, turn the switch on, then quit and reopen:
+        Click Reset & Re-add, then in the Accessibility list click +, choose this app, turn the switch on, and quit CursorStack:
 
         \(path)
         """
+        alert.addButton(withTitle: "Reset & Re-add")
+        alert.addButton(withTitle: "OK")
+        if alert.runModal() == .alertFirstButtonReturn {
+            repairAccessibilityTrust()
+        }
+    }
+
+    func repairAccessibilityTrust() {
+        _ = AppInstall.clearQuarantine()
+        _ = AppInstall.resetAccessibilityApproval()
+        NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])
+        permissionManager.openSystemSettings()
+        let alert = NSAlert()
+        alert.messageText = "Add this CursorStack copy"
+        alert.informativeText = "CursorStack was removed from the Accessibility list. Click +, select the CursorStack.app highlighted in Finder, turn the switch on, then quit and reopen CursorStack."
         alert.addButton(withTitle: "Quit CursorStack")
         alert.addButton(withTitle: "OK")
         if alert.runModal() == .alertFirstButtonReturn {
@@ -599,7 +622,16 @@ final class ApplicationController: NSObject, ObservableObject {
         recheck.keyEquivalent = "\r"
         recheck.font = NSFont.systemFont(ofSize: 15, weight: .semibold)
 
-        let buttons = NSStackView(views: [openSettings, recheck])
+        let repair = NSButton(
+            title: "Reset & Re-add",
+            target: self,
+            action: #selector(repairAccessibilityFromOnboarding)
+        )
+        repair.bezelStyle = .rounded
+        repair.controlSize = .large
+        repair.font = NSFont.systemFont(ofSize: 15, weight: .regular)
+
+        let buttons = NSStackView(views: [openSettings, recheck, repair])
         buttons.orientation = .horizontal
         buttons.spacing = 10
         buttons.alignment = .centerY
@@ -619,7 +651,8 @@ final class ApplicationController: NSObject, ObservableObject {
             stack.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             stack.bottomAnchor.constraint(equalTo: container.bottomAnchor),
             openSettings.heightAnchor.constraint(greaterThanOrEqualToConstant: 32),
-            recheck.heightAnchor.constraint(greaterThanOrEqualToConstant: 32)
+            recheck.heightAnchor.constraint(greaterThanOrEqualToConstant: 32),
+            repair.heightAnchor.constraint(greaterThanOrEqualToConstant: 32)
         ])
 
         container.layoutSubtreeIfNeeded()
@@ -650,6 +683,10 @@ final class ApplicationController: NSObject, ObservableObject {
 
     @objc private func recheckAccessibilityFromOnboarding() {
         continueFromOnboarding()
+    }
+
+    @objc private func repairAccessibilityFromOnboarding() {
+        repairAccessibilityTrust()
     }
 
     private func present(window: inout NSWindow?, title: String, size: NSSize, view: AnyView) {

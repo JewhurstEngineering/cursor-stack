@@ -80,6 +80,7 @@ final class MenuBarController: NSObject {
         menu.addItem(menuItem("Manage Groups and Tab Order…", #selector(showGroupOrganizer)))
         menu.addItem(menuItem("Settings…", #selector(showSettings)))
         menu.addItem(menuItem("Check for Updates…", #selector(checkForUpdates)))
+        menu.addItem(menuItem("Hide Menu Bar Icon", #selector(hideMenuBarIcon)))
         menu.addItem(.separator())
         let quit = NSMenuItem(title: "Quit CursorStack", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         menu.addItem(quit)
@@ -112,6 +113,22 @@ final class MenuBarController: NSObject {
 
     @objc private func showSettings() {
         app?.showSettings()
+    }
+
+    @objc private func hideMenuBarIcon() {
+        guard let app else { return }
+        if !app.settingsStore.settings.showDockIcon {
+            let alert = NSAlert()
+            alert.messageText = "Hide the menu bar icon?"
+            alert.informativeText = "The Dock icon is also hidden. Show this extra again from Settings on the stack bar (gear), or press ⌘,."
+            alert.addButton(withTitle: "Hide Icon")
+            alert.addButton(withTitle: "Cancel")
+            if alert.runModal() != .alertFirstButtonReturn {
+                return
+            }
+        }
+        app.settingsStore.settings.showMenuBarIcon = false
+        app.applySettingsSideEffects()
     }
 
     @objc private func checkForUpdates() {

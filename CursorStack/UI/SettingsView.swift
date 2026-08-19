@@ -218,8 +218,8 @@ struct SettingsView: View {
 
             SettingsCard(title: "Where CursorStack appears", symbol: "macwindow") {
                 SettingsToggleRow(
-                    title: "Menu bar",
-                    detail: "Quick access to groups, windows, and settings.",
+                    title: "Show menu bar icon",
+                    detail: "Puts CursorStack in the menu bar for stacks, windows, and Settings. You can also hide it from the extra itself.",
                     isOn: settings.showMenuBarIcon
                 )
                 Divider()
@@ -527,7 +527,7 @@ struct SettingsView: View {
                     detail: "Refreshes the list when an open project is missing.",
                     buttonTitle: "Re-scan"
                 ) {
-                    app.groupManager.refreshFromAccessibility()
+                    _ = app.rescanCursorWindows()
                 }
                 Divider()
                 SettingsActionRow(

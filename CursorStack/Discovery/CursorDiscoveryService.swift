@@ -8,6 +8,54 @@ struct DiscoveredCursorApp {
     var bundleIdentifier: String { runningApplication.bundleIdentifier ?? "" }
 }
 
+enum CursorAppIdentity {
+    static let editorBundleIDs: Set<String> = [
+        "com.todesktop.230313mzl4w4u92"
+    ]
+
+    static func matches(
+        bundleID: String?,
+        localizedName: String?,
+        bundleFileName: String?,
+        activationPolicy: NSApplication.ActivationPolicy,
+        excludingBundleID: String?
+    ) -> Bool {
+        if let excludingBundleID, bundleID == excludingBundleID {
+            return false
+        }
+        guard activationPolicy == .regular else {
+            return false
+        }
+
+        let bundle = (bundleID ?? "").lowercased()
+        let name = (localizedName ?? "").lowercased()
+        let file = (bundleFileName ?? "").lowercased()
+
+        if name.contains("cursorstack") || bundle.contains("cursorstack") {
+            return false
+        }
+        if bundle.hasPrefix("com.apple.") || bundle.hasSuffix(".xpc") {
+            return false
+        }
+        if bundle.contains(".helper") || name.contains("helper") || file.contains("helper") {
+            return false
+        }
+        if editorBundleIDs.contains(bundle) {
+            return true
+        }
+        if file == "cursor.app" {
+            return true
+        }
+        if name == "cursor" {
+            return true
+        }
+        if name.hasPrefix("cursor ") {
+            return true
+        }
+        return false
+    }
+}
+
 final class CursorDiscoveryService {
     func cursorApplications() -> [DiscoveredCursorApp] {
         NSWorkspace.shared.runningApplications.compactMap { app in
@@ -17,27 +65,13 @@ final class CursorDiscoveryService {
     }
 
     func isCursor(_ app: NSRunningApplication) -> Bool {
-        if app.bundleIdentifier == Bundle.main.bundleIdentifier {
-            return false
-        }
-        let bundle = (app.bundleIdentifier ?? "").lowercased()
-        let name = (app.localizedName ?? "").lowercased()
-        if name == "cursorstack" || bundle.contains("cursorstack") {
-            return false
-        }
-        if name == "cursor" {
-            return true
-        }
-        if bundle.contains("cursor") {
-            return true
-        }
-        if bundle.hasPrefix("com.todesktop."), name.contains("cursor") {
-            return true
-        }
-        if let url = app.bundleURL, url.lastPathComponent.lowercased() == "cursor.app" {
-            return true
-        }
-        return false
+        CursorAppIdentity.matches(
+            bundleID: app.bundleIdentifier,
+            localizedName: app.localizedName,
+            bundleFileName: app.bundleURL?.lastPathComponent,
+            activationPolicy: app.activationPolicy,
+            excludingBundleID: Bundle.main.bundleIdentifier
+        )
     }
 
     func activateCursor(pid: pid_t) {

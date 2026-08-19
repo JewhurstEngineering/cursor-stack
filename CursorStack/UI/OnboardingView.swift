@@ -41,7 +41,7 @@ struct OnboardingView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("CursorStack needs Accessibility permission")
                         .font(.headline)
-                    Text("Turn the switch on for this copy, then quit CursorStack and open it again. macOS usually applies Accessibility on the next launch.")
+                    Text("If the switch already looks On, it is probably an older copy. Use Reset & Re-add, then click +, choose this app, turn the switch on, and quit CursorStack.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)

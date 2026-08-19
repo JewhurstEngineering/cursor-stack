@@ -537,13 +537,18 @@ final class GroupManager: ObservableObject {
         }
 
         var snapshots: [AXWindowSnapshot] = []
+        var enumeratedAny = false
         for app in apps {
             do {
                 snapshots.append(contentsOf: try accessibility.windows(for: app.pid))
+                enumeratedAny = true
             } catch {
-                CSLog.ax.error("Skipping ingest; window enumeration failed")
-                return .unavailable
+                CSLog.ax.error("Skipping pid \(app.pid); window enumeration failed")
             }
+        }
+        if !enumeratedAny {
+            CSLog.ax.error("Skipping ingest; window enumeration failed for every Cursor process")
+            return .unavailable
         }
         ingestLiveWindows(snapshots)
         return .enumerated(snapshots.count)

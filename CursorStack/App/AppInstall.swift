@@ -83,10 +83,34 @@ enum AppInstall {
         NSApp.terminate(nil)
     }
 
+    static var isQuarantined: Bool {
+        isQuarantined(Bundle.main.bundleURL)
+    }
+
+    static func isQuarantined(_ appURL: URL) -> Bool {
+        let result = run("/usr/bin/xattr", ["-p", "com.apple.quarantine", appURL.path])
+        return result == 0
+    }
+
+    @discardableResult
+    static func clearQuarantine(_ appURL: URL = Bundle.main.bundleURL) -> Bool {
+        // Signed bundle contents often reject a recursive clear. The TCC-relevant
+        // flag lives on the .app itself.
+        _ = run("/usr/bin/xattr", ["-d", "com.apple.quarantine", appURL.path])
+        _ = run("/usr/bin/xattr", ["-cr", appURL.path])
+        return !isQuarantined(appURL)
+    }
+
+    @discardableResult
+    static func resetAccessibilityApproval() -> Bool {
+        guard let bundleID = Bundle.main.bundleIdentifier else { return false }
+        return run("/usr/bin/tccutil", ["reset", "Accessibility", bundleID]) == 0
+    }
+
     private static func registerWithLaunchServices(_ appURL: URL) {
         let launchServicesRegister =
             "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
-        _ = run("/usr/bin/xattr", ["-cr", appURL.path])
+        _ = clearQuarantine(appURL)
         _ = run(launchServicesRegister, ["-f", appURL.path])
     }
 

@@ -391,6 +391,68 @@ final class GroupRestoreAndReconnectTests: XCTestCase {
     }
 }
 
+final class CursorAppIdentityTests: XCTestCase {
+    func testMatchesTheSignedCursorEditor() {
+        XCTAssertTrue(
+            CursorAppIdentity.matches(
+                bundleID: "com.todesktop.230313mzl4w4u92",
+                localizedName: "Cursor",
+                bundleFileName: "Cursor.app",
+                activationPolicy: .regular,
+                excludingBundleID: "dev.jamesware.CursorStack"
+            )
+        )
+    }
+
+    func testIgnoresAppleCursorUIViewService() {
+        XCTAssertFalse(
+            CursorAppIdentity.matches(
+                bundleID: "com.apple.TextInputUI.xpc.CursorUIViewService",
+                localizedName: "CursorUIViewService",
+                bundleFileName: "CursorUIViewService.xpc",
+                activationPolicy: .prohibited,
+                excludingBundleID: "dev.jamesware.CursorStack"
+            )
+        )
+    }
+
+    func testIgnoresCursorHelpers() {
+        XCTAssertFalse(
+            CursorAppIdentity.matches(
+                bundleID: "com.todesktop.230313mzl4w4u92.helper",
+                localizedName: "Cursor Helper: shared-process",
+                bundleFileName: "Cursor Helper.app",
+                activationPolicy: .accessory,
+                excludingBundleID: "dev.jamesware.CursorStack"
+            )
+        )
+    }
+
+    func testIgnoresCursorStack() {
+        XCTAssertFalse(
+            CursorAppIdentity.matches(
+                bundleID: "dev.jamesware.CursorStack",
+                localizedName: "CursorStack",
+                bundleFileName: "CursorStack.app",
+                activationPolicy: .regular,
+                excludingBundleID: "dev.jamesware.CursorStack"
+            )
+        )
+    }
+
+    func testMatchesCursorNightly() {
+        XCTAssertTrue(
+            CursorAppIdentity.matches(
+                bundleID: "com.todesktop.cursor-nightly",
+                localizedName: "Cursor Nightly",
+                bundleFileName: "Cursor Nightly.app",
+                activationPolicy: .regular,
+                excludingBundleID: "dev.jamesware.CursorStack"
+            )
+        )
+    }
+}
+
 private func sampleGroup(
     name: String,
     memberID: UUID = UUID(),

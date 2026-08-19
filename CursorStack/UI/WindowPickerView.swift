@@ -2,11 +2,18 @@ import SwiftUI
 
 struct WindowPickerView: View {
     @ObservedObject var app: ApplicationController
+    @ObservedObject private var groupManager: GroupManager
     @State private var selected = Set<UUID>()
     @State private var groupName = "CursorStack Group"
+    @State private var scanNote = ""
+
+    init(app: ApplicationController) {
+        self.app = app
+        self._groupManager = ObservedObject(wrappedValue: app.groupManager)
+    }
 
     var windows: [ManagedCursorWindow] {
-        app.groupManager.ungroupedWindows
+        groupManager.ungroupedWindows
     }
 
     var body: some View {
@@ -37,13 +44,18 @@ struct WindowPickerView: View {
                         .foregroundStyle(Color.accentColor)
                     Text("No available Cursor windows")
                         .font(.system(size: 14, weight: .semibold))
-                    Text("Open another project in a new Cursor window, then come back and re-scan.")
+                    Text(emptyWindowsExplanation)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: 280)
+                    if !scanNote.isEmpty {
+                        Text(scanNote)
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
                     Button("Re-scan") {
-                        app.groupManager.refreshFromAccessibility()
+                        applyScanOutcome(app.rescanCursorWindows())
                     }
                 }
                 .frame(maxWidth: .infinity)
@@ -99,6 +111,30 @@ struct WindowPickerView: View {
             if let first = windows.first {
                 groupName = first.displayName
             }
+        }
+    }
+
+    private var emptyWindowsExplanation: String {
+        if groupManager.groups.contains(where: { !$0.windows.isEmpty }) {
+            return "Every open Cursor window is already in a stack."
+        }
+        if groupManager.groups.contains(where: { !$0.unresolved.isEmpty }) {
+            return "Your saved stack is waiting to reconnect. Bring a Cursor window forward, then re-scan."
+        }
+        return "Open another project in a new Cursor window, then come back and re-scan."
+    }
+
+    private func applyScanOutcome(_ outcome: WindowRefreshOutcome) {
+        selected = Set(windows.map(\.id))
+        switch outcome {
+        case .cursorMissing:
+            scanNote = "Cursor does not appear to be running."
+        case .unavailable:
+            scanNote = "macOS did not return Cursor’s window list. Quit CursorStack and open it again."
+        case .enumerated(0):
+            scanNote = "Cursor is running, but no editor windows were visible to Accessibility."
+        case .enumerated(let count):
+            scanNote = "Found \(count) Cursor window\(count == 1 ? "" : "s")."
         }
     }
 
