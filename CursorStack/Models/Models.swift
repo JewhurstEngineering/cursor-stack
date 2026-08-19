@@ -276,6 +276,24 @@ struct AppSettings: Codable, Equatable {
     }
 }
 
+enum WindowRefreshOutcome: Equatable {
+    case unavailable
+    case cursorMissing
+    case enumerated(Int)
+}
+
+enum GroupMembershipPolicy {
+    static let missThreshold = 3
+
+    static func shouldParkAsUnresolved(consecutiveMisses: Int) -> Bool {
+        consecutiveMisses >= missThreshold
+    }
+
+    static func shouldSkipIngest(enumerationFailed: Bool) -> Bool {
+        enumerationFailed
+    }
+}
+
 enum GroupLogic {
     static func nextActiveID(afterClosing closedID: UUID, orderedIDs: [UUID], current: UUID?) -> UUID? {
         guard !orderedIDs.isEmpty else { return nil }

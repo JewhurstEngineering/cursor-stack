@@ -36,6 +36,8 @@ final class ApplicationController: NSObject, ObservableObject {
     private var menuBar: MenuBarController?
     private var newWindowPrompted = Set<UUID>()
     private var keepChromeVisibleUntil = Date.distantPast
+    private var sessionSuspended = false
+    private var wakeRecoveryTask: Task<Void, Never>?
 
     @Published var permissionGranted = false
     @Published var pickerTargetGroupID: UUID?
@@ -88,8 +90,26 @@ final class ApplicationController: NSObject, ObservableObject {
 
         NSWorkspace.shared.notificationCenter.addObserver(
             self,
+            selector: #selector(workspaceWillSleep),
+            name: NSWorkspace.willSleepNotification,
+            object: nil
+        )
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self,
             selector: #selector(workspaceDidWake),
             name: NSWorkspace.didWakeNotification,
+            object: nil
+        )
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self,
+            selector: #selector(workspaceWillSleep),
+            name: NSWorkspace.screensDidSleepNotification,
+            object: nil
+        )
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self,
+            selector: #selector(workspaceDidWake),
+            name: NSWorkspace.screensDidWakeNotification,
             object: nil
         )
         NSWorkspace.shared.notificationCenter.addObserver(
@@ -108,6 +128,18 @@ final class ApplicationController: NSObject, ObservableObject {
             self,
             selector: #selector(appTerminated(_:)),
             name: NSWorkspace.didTerminateApplicationNotification,
+            object: nil
+        )
+        DistributedNotificationCenter.default().addObserver(
+            self,
+            selector: #selector(screenLocked),
+            name: Notification.Name("com.apple.screenIsLocked"),
+            object: nil
+        )
+        DistributedNotificationCenter.default().addObserver(
+            self,
+            selector: #selector(screenUnlocked),
+            name: Notification.Name("com.apple.screenIsUnlocked"),
             object: nil
         )
         permissionGranted = permissionManager.isTrusted
@@ -130,7 +162,8 @@ final class ApplicationController: NSObject, ObservableObject {
         }
         attentionTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                self?.attention.poll(selectedWindowID: self?.groupManager.preferredGroup()?.activeWindowID)
+                guard let self, !self.sessionSuspended else { return }
+                self.attention.poll(selectedWindowID: self.groupManager.preferredGroup()?.activeWindowID)
             }
         }
     }
@@ -139,7 +172,15 @@ final class ApplicationController: NSObject, ObservableObject {
         if !permissionGranted {
             showOnboarding()
         } else if groupManager.groups.isEmpty {
-            showWindowPicker(addingTo: nil)
+            let persisted = groupStore.load()
+            if persisted.isEmpty {
+                showWindowPicker(addingTo: nil)
+            } else {
+                _ = groupManager.refreshFromAccessibility()
+                groupManager.restore(persisted: persisted, live: groupManager.ungroupedWindows)
+                realignPanels(refreshTabs: true)
+                menuBar?.reload()
+            }
         } else if let group = groupManager.preferredGroup() {
             groupManager.restoreGroup(group.id)
             realignPanels(refreshTabs: true)
@@ -308,12 +349,12 @@ final class ApplicationController: NSObject, ObservableObject {
         permissionGranted = true
         onboardingWindow?.close()
         attachObservers()
-        groupManager.refreshFromAccessibility()
+        _ = groupManager.refreshFromAccessibility()
         let persisted = groupStore.load()
         if !persisted.isEmpty {
             groupManager.restore(persisted: persisted, live: groupManager.ungroupedWindows)
         }
-        if groupManager.groups.isEmpty {
+        if groupManager.groups.isEmpty, persisted.isEmpty {
             showWindowPicker(addingTo: nil)
         }
         startAttentionForAll()
@@ -338,9 +379,9 @@ final class ApplicationController: NSObject, ObservableObject {
     }
 
     private func reconcile() {
-        guard permissionGranted else { return }
+        guard permissionGranted, !sessionSuspended else { return }
         attachObservers()
-        groupManager.refreshFromAccessibility()
+        _ = groupManager.refreshFromAccessibility()
         startAttentionForAll()
         realignPanels()
         menuBar?.reload()
@@ -407,6 +448,7 @@ final class ApplicationController: NSObject, ObservableObject {
     }
 
     private func handleAXEvent(pid: pid_t, element: AXUIElement, notification: String) {
+        guard !sessionSuspended else { return }
         let moved = kAXMovedNotification as String
         let resized = kAXResizedNotification as String
         let created = kAXWindowCreatedNotification as String
@@ -516,8 +558,64 @@ final class ApplicationController: NSObject, ObservableObject {
         window = newWindow
     }
 
+    @objc private func workspaceWillSleep() {
+        suspendSession()
+    }
+
+    @objc private func screenLocked() {
+        suspendSession()
+    }
+
+    @objc private func screenUnlocked() {
+        resumeSession()
+    }
+
     @objc private func workspaceDidWake() {
-        reconcile()
+        resumeSession()
+    }
+
+    private func suspendSession() {
+        sessionSuspended = true
+        wakeRecoveryTask?.cancel()
+        wakeRecoveryTask = nil
+        CSLog.general.info("Session suspended; pausing window reconcile")
+    }
+
+    private func resumeSession() {
+        sessionSuspended = false
+        startWakeRecovery()
+    }
+
+    private func startWakeRecovery() {
+        wakeRecoveryTask?.cancel()
+        wakeRecoveryTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            let delays: [UInt64] = [
+                400_000_000,
+                800_000_000,
+                1_500_000_000,
+                2_500_000_000,
+                4_000_000_000
+            ]
+            for delay in delays {
+                try? await Task.sleep(nanoseconds: delay)
+                guard !Task.isCancelled else { return }
+                if self.sessionSuspended { return }
+                switch self.groupManager.refreshFromAccessibility() {
+                case .unavailable, .enumerated(0):
+                    continue
+                case .cursorMissing, .enumerated(_):
+                    self.attachObservers()
+                    self.startAttentionForAll()
+                    self.realignPanels()
+                    self.menuBar?.reload()
+                    return
+                }
+            }
+            if !self.sessionSuspended {
+                self.reconcile()
+            }
+        }
     }
 
     @objc private func appLaunched(_ notification: Notification) {
@@ -533,9 +631,10 @@ final class ApplicationController: NSObject, ObservableObject {
     }
 
     @objc private func frontmostChanged() {
+        guard !sessionSuspended else { return }
         if let front = NSWorkspace.shared.frontmostApplication,
            discovery.isCursor(front) {
-            groupManager.refreshFromAccessibility()
+            _ = groupManager.refreshFromAccessibility()
         }
         realignPanels()
     }
@@ -550,7 +649,7 @@ final class ApplicationController: NSObject, ObservableObject {
     }
 
     func persistGroupsAfterPanelMove() {
-        groupStore.save(groupManager.persistableGroups())
+        groupStore.save(groupManager.persistableGroups(), allowingEmpty: groupManager.persistEmptyGroups)
     }
 
     func reconnectUnresolved(_ persisted: PersistedWindowReference, in groupID: UUID) {
@@ -574,7 +673,7 @@ extension ApplicationController: GroupManagerDelegate {
     }
 
     func groupManagerNeedsPersistence(_ manager: GroupManager) {
-        groupStore.save(manager.persistableGroups())
+        groupStore.save(manager.persistableGroups(), allowingEmpty: manager.persistEmptyGroups)
         realignPanels()
         menuBar?.reload()
         objectWillChange.send()

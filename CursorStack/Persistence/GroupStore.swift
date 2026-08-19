@@ -4,11 +4,15 @@ import Foundation
 final class GroupStore {
     private let url: URL
 
-    init(fileManager: FileManager = .default) {
+    convenience init(fileManager: FileManager = .default) {
         let root = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
             .appendingPathComponent("CursorStack", isDirectory: true)
-        try? fileManager.createDirectory(at: root, withIntermediateDirectories: true)
-        url = root.appendingPathComponent("groups.json")
+        self.init(directory: root, fileManager: fileManager)
+    }
+
+    init(directory: URL, fileManager: FileManager = .default) {
+        try? fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
+        url = directory.appendingPathComponent("groups.json")
     }
 
     func load() -> [CursorWindowGroup] {
@@ -21,7 +25,11 @@ final class GroupStore {
         }
     }
 
-    func save(_ groups: [CursorWindowGroup]) {
+    func save(_ groups: [CursorWindowGroup], allowingEmpty: Bool = false) {
+        if groups.isEmpty, !allowingEmpty, !load().isEmpty {
+            CSLog.general.error("Refusing to overwrite saved groups with an empty list")
+            return
+        }
         do {
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]

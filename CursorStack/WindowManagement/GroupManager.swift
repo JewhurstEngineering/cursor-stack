@@ -23,6 +23,7 @@ final class GroupManager: ObservableObject {
     private let fitDebouncer = Debouncer(delay: 0.24)
     private var knownElementTokens = Set<UInt>()
     private var consecutiveMisses: [UUID: Int] = [:]
+    private(set) var persistEmptyGroups = false
 
     init(accessibility: AccessibilityService, discovery: CursorDiscoveryService) {
         self.accessibility = accessibility
@@ -333,7 +334,7 @@ final class GroupManager: ObservableObject {
               let destination = groups.first(where: { $0.id == destinationGroupID }),
               let windowIndex = source.windows.firstIndex(where: { $0.id == windowID }) else { return }
         let window = source.windows.remove(at: windowIndex)
-        if source.windows.isEmpty {
+        if source.windows.isEmpty && source.unresolved.isEmpty {
             removeGroup(sourceGroupID)
         } else if source.activeWindowID == windowID {
             source.activeWindowID = source.liveWindows.first?.id
@@ -347,7 +348,7 @@ final class GroupManager: ObservableObject {
         objectWillChange.send()
     }
 
-    func reconnect(persisted: PersistedWindowReference, to window: ManagedCursorWindow, in groupID: UUID) {
+    func reconnect(persisted: PersistedWindowReference, to window: ManagedCursorWindow, in groupID: UUID, applyFrame: Bool = true) {
         guard let group = groups.first(where: { $0.id == groupID }) else { return }
         ungroupedWindows.removeAll { $0.id == window.id }
         groups.forEach { other in
@@ -356,7 +357,11 @@ final class GroupManager: ObservableObject {
         let restored = ManagedCursorWindow(id: persisted.id, snapshot: window.snapshot, alias: persisted.alias)
         group.windows.append(restored)
         group.unresolved.removeAll { $0.id == persisted.id }
-        applyFrameIfNeeded(group.synchronizedFrame, to: restored)
+        consecutiveMisses[restored.id] = 0
+        knownElementTokens.insert(CFHash(restored.element))
+        if applyFrame {
+            applyFrameIfNeeded(group.synchronizedFrame, to: restored)
+        }
         group.objectWillChange.send()
         delegate?.groupManagerNeedsPersistence(self)
         objectWillChange.send()
@@ -376,7 +381,7 @@ final class GroupManager: ObservableObject {
         let window = group.windows.remove(at: index)
         ungroupedWindows.append(window)
 
-        if group.windows.isEmpty {
+        if group.windows.isEmpty && group.unresolved.isEmpty {
             removeGroup(groupID)
             return
         }
@@ -434,9 +439,14 @@ final class GroupManager: ObservableObject {
     }
 
     func handleWindowClosed(element: AXUIElement) {
-        if let window = allManagedWindows.first(where: { AXHelpers.equal($0.element, element) }) {
-            markClosed(window)
+        guard let window = allManagedWindows.first(where: { AXHelpers.equal($0.element, element) }) else { return }
+        if group(containing: window.id) != nil {
+            window.isUnavailable = true
+            consecutiveMisses[window.id] = max(consecutiveMisses[window.id] ?? 0, GroupMembershipPolicy.missThreshold - 1)
+            objectWillChange.send()
+            return
         }
+        markClosed(window)
     }
 
     func handleMiniaturize(element: AXUIElement, minimized: Bool) {
@@ -472,8 +482,10 @@ final class GroupManager: ObservableObject {
 
     func ingestLiveWindows(_ snapshots: [AXWindowSnapshot]) {
         var unmatched = snapshots
+        var membershipChanged = false
+        let managed = allManagedWindows
 
-        for window in allManagedWindows {
+        for window in managed {
             if let index = unmatched.firstIndex(where: { AXHelpers.equal($0.element, window.element) }) {
                 window.apply(unmatched.remove(at: index))
                 consecutiveMisses[window.id] = 0
@@ -481,10 +493,22 @@ final class GroupManager: ObservableObject {
                 let misses = (consecutiveMisses[window.id] ?? 0) + 1
                 consecutiveMisses[window.id] = misses
                 window.isUnavailable = true
-                if misses >= 3 {
-                    markClosed(window)
+                if GroupMembershipPolicy.shouldParkAsUnresolved(consecutiveMisses: misses) {
+                    if group(containing: window.id) != nil {
+                        parkAsUnresolved(window, persist: false)
+                        membershipChanged = true
+                    } else {
+                        markClosed(window)
+                    }
                 }
             }
+        }
+
+        if reconnectUnresolved(using: &unmatched) {
+            membershipChanged = true
+        }
+        if reconnectUngroupedWindows() {
+            membershipChanged = true
         }
 
         for snapshot in unmatched {
@@ -496,17 +520,33 @@ final class GroupManager: ObservableObject {
             delegate?.groupManager(self, didDetectNewWindow: window)
         }
 
+        if membershipChanged {
+            delegate?.groupManagerNeedsPersistence(self)
+        }
         objectWillChange.send()
     }
 
-    func refreshFromAccessibility() {
+    @discardableResult
+    func refreshFromAccessibility() -> WindowRefreshOutcome {
+        let apps = discovery.cursorApplications()
+        if apps.isEmpty {
+            if groups.contains(where: { !$0.windows.isEmpty }) {
+                parkAllGroupedWindowsAsUnresolved()
+            }
+            return .cursorMissing
+        }
+
         var snapshots: [AXWindowSnapshot] = []
-        for app in discovery.cursorApplications() {
-            if let windows = try? accessibility.windows(for: app.pid) {
-                snapshots.append(contentsOf: windows)
+        for app in apps {
+            do {
+                snapshots.append(contentsOf: try accessibility.windows(for: app.pid))
+            } catch {
+                CSLog.ax.error("Skipping ingest; window enumeration failed")
+                return .unavailable
             }
         }
         ingestLiveWindows(snapshots)
+        return .enumerated(snapshots.count)
     }
 
     func persistableGroups() -> [CursorWindowGroup] {
@@ -519,20 +559,33 @@ final class GroupManager: ObservableObject {
 
     func removeGroup(_ groupID: UUID) {
         groups.removeAll { $0.id == groupID }
+        persistEmptyGroups = groups.isEmpty
         delegate?.groupManager(self, didRemove: groupID)
+        delegate?.groupManagerNeedsPersistence(self)
+        persistEmptyGroups = false
+        objectWillChange.send()
+    }
+
+    private func parkAllGroupedWindowsAsUnresolved() {
+        let windows = groups.flatMap(\.windows)
+        guard !windows.isEmpty else { return }
+        for window in windows {
+            parkAsUnresolved(window, persist: false)
+        }
         delegate?.groupManagerNeedsPersistence(self)
         objectWillChange.send()
     }
 
-    private func markClosed(_ window: ManagedCursorWindow) {
-        window.isClosed = true
-        window.isUnavailable = true
+    private func parkAsUnresolved(_ window: ManagedCursorWindow, persist: Bool) {
         knownElementTokens.remove(CFHash(window.element))
         consecutiveMisses[window.id] = nil
         guard let group = group(containing: window.id) else {
             ungroupedWindows.removeAll { $0.id == window.id }
-            objectWillChange.send()
             return
+        }
+        let reference = window.persistedReference()
+        if !group.unresolved.contains(where: { $0.id == reference.id }) {
+            group.unresolved.append(reference)
         }
         let next = GroupLogic.nextActiveID(
             afterClosing: window.id,
@@ -540,17 +593,80 @@ final class GroupManager: ObservableObject {
             current: group.activeWindowID
         )
         group.windows.removeAll { $0.id == window.id }
-        if group.windows.isEmpty {
-            removeGroup(group.id)
+        group.activeWindowID = group.windows.isEmpty ? nil : next
+        group.objectWillChange.send()
+        if persist {
+            delegate?.groupManagerNeedsPersistence(self)
+        }
+        objectWillChange.send()
+    }
+
+    @discardableResult
+    private func reconnectUnresolved(using unmatched: inout [AXWindowSnapshot]) -> Bool {
+        let pending = groups.flatMap { group in group.unresolved.map { (groupID: group.id, ref: $0) } }
+        guard !pending.isEmpty, !unmatched.isEmpty else { return false }
+
+        let live = unmatched.map { (title: $0.title, projectDisplayName: $0.projectDisplayName) }
+        let assignments = WindowMatcher.match(persisted: pending.map(\.ref), live: live)
+        var used = Set<Int>()
+        var reconnected = false
+
+        for item in pending {
+            guard let liveIndex = assignments[item.ref.id], !used.contains(liveIndex) else { continue }
+            used.insert(liveIndex)
+            let snapshot = unmatched[liveIndex]
+            guard let group = groups.first(where: { $0.id == item.groupID }) else { continue }
+            let restored = ManagedCursorWindow(id: item.ref.id, snapshot: snapshot, alias: item.ref.alias)
+            group.windows.append(restored)
+            group.unresolved.removeAll { $0.id == item.ref.id }
+            if group.activeWindowID == nil {
+                group.activeWindowID = restored.id
+            }
+            consecutiveMisses[restored.id] = 0
+            knownElementTokens.insert(CFHash(restored.element))
+            group.objectWillChange.send()
+            reconnected = true
+        }
+
+        if !used.isEmpty {
+            unmatched = unmatched.enumerated().compactMap { used.contains($0.offset) ? nil : $0.element }
+        }
+        return reconnected
+    }
+
+    @discardableResult
+    private func reconnectUngroupedWindows() -> Bool {
+        let pending = groups.flatMap { group in group.unresolved.map { (groupID: group.id, ref: $0) } }
+        guard !pending.isEmpty, !ungroupedWindows.isEmpty else { return false }
+
+        let live = ungroupedWindows.map { (title: $0.title, projectDisplayName: $0.projectDisplayName) }
+        let assignments = WindowMatcher.match(persisted: pending.map(\.ref), live: live)
+        var pairs: [(PersistedWindowReference, ManagedCursorWindow, UUID)] = []
+        var used = Set<Int>()
+        for item in pending {
+            guard let index = assignments[item.ref.id],
+                  !used.contains(index),
+                  index < ungroupedWindows.count else { continue }
+            used.insert(index)
+            pairs.append((item.ref, ungroupedWindows[index], item.groupID))
+        }
+        for (ref, window, groupID) in pairs {
+            reconnect(persisted: ref, to: window, in: groupID, applyFrame: false)
+        }
+        return !pairs.isEmpty
+    }
+
+    private func markClosed(_ window: ManagedCursorWindow) {
+        window.isClosed = true
+        window.isUnavailable = true
+        knownElementTokens.remove(CFHash(window.element))
+        consecutiveMisses[window.id] = nil
+        guard group(containing: window.id) != nil else {
+            ungroupedWindows.removeAll { $0.id == window.id }
+            objectWillChange.send()
             return
         }
-        group.activeWindowID = next
-        if let next, let nextWindow = group.windows.first(where: { $0.id == next }) {
-            FocusCoordinator.activate(window: nextWindow, discovery: discovery, accessibility: accessibility)
-        }
-        group.objectWillChange.send()
-        delegate?.groupManagerNeedsPersistence(self)
-        objectWillChange.send()
+        parkAsUnresolved(window, persist: true)
     }
 
     private func applyCanonicalFrame(in group: RuntimeWindowGroup, raising active: ManagedCursorWindow?) {

@@ -1,4 +1,5 @@
 import XCTest
+import ApplicationServices
 @testable import CursorStack
 
 final class WindowTitleParserTests: XCTestCase {
@@ -286,4 +287,143 @@ final class AccessibilityAttentionInterpretTests: XCTestCase {
         let observation = WindowMetadataAttentionProvider.interpret(title: "● backend — Cursor")
         XCTAssertEqual(observation.state, .attention)
     }
+}
+
+final class GroupMembershipPolicyTests: XCTestCase {
+    func testParksAfterThreeMisses() {
+        XCTAssertFalse(GroupMembershipPolicy.shouldParkAsUnresolved(consecutiveMisses: 2))
+        XCTAssertTrue(GroupMembershipPolicy.shouldParkAsUnresolved(consecutiveMisses: 3))
+    }
+
+    func testSkipIngestOnEnumerationFailure() {
+        XCTAssertTrue(GroupMembershipPolicy.shouldSkipIngest(enumerationFailed: true))
+        XCTAssertFalse(GroupMembershipPolicy.shouldSkipIngest(enumerationFailed: false))
+    }
+}
+
+@MainActor
+final class GroupStoreGuardTests: XCTestCase {
+    func testRefusesToOverwriteSavedGroupsWithAnEmptyList() {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let store = GroupStore(directory: directory)
+        let saved = sampleGroup(name: "Work")
+        store.save([saved])
+        XCTAssertEqual(store.load().count, 1)
+
+        store.save([])
+        XCTAssertEqual(store.load().map(\.id), [saved.id])
+
+        store.save([], allowingEmpty: true)
+        XCTAssertTrue(store.load().isEmpty)
+    }
+
+    func testResetAllowsALaterEmptySave() {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let store = GroupStore(directory: directory)
+        store.save([sampleGroup(name: "Work")])
+        store.reset()
+        store.save([])
+        XCTAssertTrue(store.load().isEmpty)
+    }
+}
+
+@MainActor
+final class GroupRestoreAndReconnectTests: XCTestCase {
+    func testRestoreKeepsUnresolvedWhenLiveWindowsAreMissing() {
+        let manager = GroupManager(
+            accessibility: AccessibilityService(),
+            discovery: CursorDiscoveryService()
+        )
+        let persistedID = UUID()
+        manager.restore(
+            persisted: [sampleGroup(name: "Work", memberID: persistedID, project: "ai-meter")],
+            live: []
+        )
+
+        XCTAssertEqual(manager.groups.count, 1)
+        XCTAssertTrue(manager.groups[0].windows.isEmpty)
+        XCTAssertEqual(manager.groups[0].unresolved.map(\.id), [persistedID])
+    }
+
+    func testEmptyIngestParksMembersInsteadOfDeletingTheGroup() {
+        let manager = GroupManager(
+            accessibility: AccessibilityService(),
+            discovery: CursorDiscoveryService()
+        )
+        let window = ManagedCursorWindow(
+            snapshot: makeSnapshot(title: "App.swift — ai-meter — Cursor", pid: 4_101)
+        )
+        manager.createGroup(name: "Work", windows: [window])
+        XCTAssertEqual(manager.groups.count, 1)
+        XCTAssertEqual(manager.groups[0].windows.count, 1)
+
+        for _ in 0..<GroupMembershipPolicy.missThreshold {
+            manager.ingestLiveWindows([])
+        }
+
+        XCTAssertEqual(manager.groups.count, 1)
+        XCTAssertTrue(manager.groups[0].windows.isEmpty)
+        XCTAssertEqual(manager.groups[0].unresolved.count, 1)
+        XCTAssertEqual(manager.groups[0].unresolved[0].projectDisplayName, "ai-meter")
+    }
+
+    func testLaterLiveWindowReconnectsToSavedGroup() {
+        let manager = GroupManager(
+            accessibility: AccessibilityService(),
+            discovery: CursorDiscoveryService()
+        )
+        let persistedID = UUID()
+        manager.restore(
+            persisted: [sampleGroup(name: "Work", memberID: persistedID, project: "ai-meter")],
+            live: []
+        )
+        XCTAssertEqual(manager.groups[0].unresolved.count, 1)
+
+        manager.ingestLiveWindows([
+            makeSnapshot(title: "main.ts — ai-meter — Cursor", pid: 4_202)
+        ])
+
+        XCTAssertEqual(manager.groups.count, 1)
+        XCTAssertEqual(manager.groups[0].windows.count, 1)
+        XCTAssertEqual(manager.groups[0].windows[0].id, persistedID)
+        XCTAssertTrue(manager.groups[0].unresolved.isEmpty)
+        XCTAssertTrue(manager.ungroupedWindows.isEmpty)
+    }
+}
+
+private func sampleGroup(
+    name: String,
+    memberID: UUID = UUID(),
+    project: String = "ai-meter"
+) -> CursorWindowGroup {
+    CursorWindowGroup(
+        id: UUID(),
+        name: name,
+        members: [
+            PersistedWindowReference(
+                id: memberID,
+                lastTitle: "App.swift — \(project) — Cursor",
+                projectDisplayName: project,
+                alias: nil,
+                lastSeen: Date()
+            )
+        ],
+        activeMemberID: memberID,
+        frame: CodableRect(CGRect(x: 0, y: 0, width: 800, height: 600)),
+        settings: GroupSettings()
+    )
+}
+
+private func makeSnapshot(title: String, pid: pid_t) -> AXWindowSnapshot {
+    AXWindowSnapshot(
+        pid: pid,
+        element: AXUIElementCreateApplication(pid),
+        title: title,
+        role: kAXWindowRole as String,
+        subrole: nil,
+        frame: CGRect(x: 40, y: 40, width: 800, height: 600),
+        isMinimized: false,
+        isMain: true,
+        isFocused: true
+    )
 }

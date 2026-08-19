@@ -1,12 +1,33 @@
 import AppKit
 import ApplicationServices
 
+enum AXCopyResult {
+    case value(AnyObject?)
+    case noValue
+    case failed(AXError)
+}
+
 enum AXHelpers {
-    static func copyAttribute(_ element: AXUIElement, _ attribute: String) -> AnyObject? {
+    static func copyAttributeResult(_ element: AXUIElement, _ attribute: String) -> AXCopyResult {
         var value: AnyObject?
         let error = AXUIElementCopyAttributeValue(element, attribute as CFString, &value)
-        guard error == .success else { return nil }
-        return value
+        switch error {
+        case .success:
+            return .value(value)
+        case .noValue:
+            return .noValue
+        default:
+            return .failed(error)
+        }
+    }
+
+    static func copyAttribute(_ element: AXUIElement, _ attribute: String) -> AnyObject? {
+        switch copyAttributeResult(element, attribute) {
+        case .value(let value):
+            return value
+        case .noValue, .failed:
+            return nil
+        }
     }
 
     static func stringAttribute(_ element: AXUIElement, _ attribute: String) -> String? {

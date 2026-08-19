@@ -42,11 +42,18 @@ final class AccessibilityService: ExternalWindowControlling {
 
     func windows(for pid: pid_t) throws -> [AXWindowSnapshot] {
         let app = applicationElement(pid: pid)
-        guard let raw = AXHelpers.copyAttribute(app, kAXWindowsAttribute as String) as? [AXUIElement] else {
-            return []
+        let elements: [AXUIElement]
+        switch AXHelpers.copyAttributeResult(app, kAXWindowsAttribute as String) {
+        case .value(let raw):
+            elements = (raw as? [AXUIElement]) ?? []
+        case .noValue:
+            elements = []
+        case .failed(let error):
+            CSLog.ax.error("AX window list unavailable for pid \(pid) (\(error.rawValue))")
+            throw AccessibilityServiceError.copyFailed
         }
 
-        return raw.compactMap { element in
+        return elements.compactMap { element in
             snapshot(pid: pid, element: element)
         }
         .filter { Self.isLikelyEditorWindow($0) }
