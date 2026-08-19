@@ -364,11 +364,15 @@ final class ApplicationController: NSObject, ObservableObject {
 
     private func checkPermission() {
         let trusted = permissionManager.isTrusted
+        NSLog("CursorStack: accessibility trusted=%@", trusted ? "yes" : "no")
         if trusted && !permissionGranted {
             permissionTimer?.invalidate()
             beginWindowManagement()
         }
         permissionGranted = trusted
+        if trusted {
+            menuBar?.reload()
+        }
     }
 
     private func attachObservers() {
@@ -536,19 +540,40 @@ final class ApplicationController: NSObject, ObservableObject {
     }
 
     func continueFromOnboarding() {
-        guard permissionManager.isTrusted else {
-            requestAccessibility()
+        recheckAccessibilityPermission()
+        guard permissionGranted else {
+            explainAccessibilityStillDenied()
             return
         }
-        permissionTimer?.invalidate()
-        beginWindowManagement()
+    }
+
+    func recheckAccessibilityPermission() {
+        checkPermission()
+    }
+
+    private func explainAccessibilityStillDenied() {
+        let path = Bundle.main.bundleURL.path
+        let alert = NSAlert()
+        alert.messageText = "macOS still hasn’t given this copy access"
+        alert.informativeText = """
+        Quit CursorStack completely, then open it again from Applications.
+
+        If the welcome screen comes back, remove CursorStack from the Accessibility list, click +, add this app, turn the switch on, then quit and reopen:
+
+        \(path)
+        """
+        alert.addButton(withTitle: "Quit CursorStack")
+        alert.addButton(withTitle: "OK")
+        if alert.runModal() == .alertFirstButtonReturn {
+            NSApp.terminate(nil)
+        }
     }
 
     private func showOnboarding() {
         if let onboardingWindow, onboardingWindow.isVisible {
             onboardingWindow.makeKeyAndOrderFront(nil)
             NSApp.activate()
-            requestAccessibility()
+            recheckAccessibilityPermission()
             return
         }
 
@@ -562,10 +587,24 @@ final class ApplicationController: NSObject, ObservableObject {
         )
         openSettings.bezelStyle = .rounded
         openSettings.controlSize = .large
-        openSettings.keyEquivalent = "\r"
         openSettings.font = NSFont.systemFont(ofSize: 15, weight: .semibold)
 
-        let stack = NSStackView(views: [hosted.view, openSettings])
+        let recheck = NSButton(
+            title: "I’ve granted it",
+            target: self,
+            action: #selector(recheckAccessibilityFromOnboarding)
+        )
+        recheck.bezelStyle = .rounded
+        recheck.controlSize = .large
+        recheck.keyEquivalent = "\r"
+        recheck.font = NSFont.systemFont(ofSize: 15, weight: .semibold)
+
+        let buttons = NSStackView(views: [openSettings, recheck])
+        buttons.orientation = .horizontal
+        buttons.spacing = 10
+        buttons.alignment = .centerY
+
+        let stack = NSStackView(views: [hosted.view, buttons])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 8
@@ -579,7 +618,8 @@ final class ApplicationController: NSObject, ObservableObject {
             stack.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             stack.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             stack.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-            openSettings.heightAnchor.constraint(greaterThanOrEqualToConstant: 32)
+            openSettings.heightAnchor.constraint(greaterThanOrEqualToConstant: 32),
+            recheck.heightAnchor.constraint(greaterThanOrEqualToConstant: 32)
         ])
 
         container.layoutSubtreeIfNeeded()
@@ -606,6 +646,10 @@ final class ApplicationController: NSObject, ObservableObject {
 
     @objc private func openAccessibilityFromOnboarding() {
         requestAccessibility()
+    }
+
+    @objc private func recheckAccessibilityFromOnboarding() {
+        continueFromOnboarding()
     }
 
     private func present(window: inout NSWindow?, title: String, size: NSSize, view: AnyView) {

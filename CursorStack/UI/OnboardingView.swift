@@ -38,9 +38,20 @@ struct OnboardingView: View {
                 Label("Accessibility is granted", systemImage: "checkmark.circle.fill")
                     .foregroundStyle(.green)
             } else {
-                Text("CursorStack needs Accessibility permission")
-                    .font(.headline)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("CursorStack needs Accessibility permission")
+                        .font(.headline)
+                    Text("Turn the switch on for this copy, then quit CursorStack and open it again. macOS usually applies Accessibility on the next launch.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
+
+            Text("This copy: \(Bundle.main.bundleURL.path)")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .textSelection(.enabled)
 
             Text("CursorStack \(appVersionLabel)")
                 .font(.caption)
@@ -48,11 +59,6 @@ struct OnboardingView: View {
         }
         .padding(28)
         .frame(minWidth: 480, maxWidth: .infinity, alignment: .leading)
-        .onAppear {
-            if !app.permissionGranted {
-                app.requestAccessibility()
-            }
-        }
     }
 
     private var appVersionLabel: String {
