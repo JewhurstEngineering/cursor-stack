@@ -545,8 +545,67 @@ final class ApplicationController: NSObject, ObservableObject {
     }
 
     private func showOnboarding() {
-        let view = OnboardingView(app: self)
-        present(window: &onboardingWindow, title: "Welcome to CursorStack", size: NSSize(width: 560, height: 520), view: AnyView(view))
+        if let onboardingWindow, onboardingWindow.isVisible {
+            onboardingWindow.makeKeyAndOrderFront(nil)
+            NSApp.activate()
+            requestAccessibility()
+            return
+        }
+
+        let hosted = NSHostingController(rootView: OnboardingView(app: self))
+        hosted.sizingOptions = [.preferredContentSize]
+
+        let openSettings = NSButton(
+            title: "Open Accessibility Settings",
+            target: self,
+            action: #selector(openAccessibilityFromOnboarding)
+        )
+        openSettings.bezelStyle = .rounded
+        openSettings.controlSize = .large
+        openSettings.keyEquivalent = "\r"
+        openSettings.font = NSFont.systemFont(ofSize: 15, weight: .semibold)
+
+        let stack = NSStackView(views: [hosted.view, openSettings])
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 8
+        stack.edgeInsets = NSEdgeInsets(top: 0, left: 28, bottom: 24, right: 28)
+        stack.translatesAutoresizingMaskIntoConstraints = false
+
+        let container = NSView()
+        container.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.topAnchor.constraint(equalTo: container.topAnchor),
+            stack.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            stack.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            openSettings.heightAnchor.constraint(greaterThanOrEqualToConstant: 32)
+        ])
+
+        container.layoutSubtreeIfNeeded()
+        let fitted = stack.fittingSize
+        let windowSize = NSSize(width: 560, height: max(fitted.height, 420))
+
+        let window = NSWindow(
+            contentRect: NSRect(origin: .zero, size: windowSize),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Welcome to CursorStack"
+        window.contentView = container
+        window.setContentSize(windowSize)
+        window.contentMinSize = NSSize(width: 480, height: 360)
+        window.isReleasedWhenClosed = false
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate()
+        onboardingWindow = window
+        requestAccessibility()
+    }
+
+    @objc private func openAccessibilityFromOnboarding() {
+        requestAccessibility()
     }
 
     private func present(window: inout NSWindow?, title: String, size: NSSize, view: AnyView) {
