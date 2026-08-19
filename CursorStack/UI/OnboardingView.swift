@@ -4,7 +4,7 @@ struct OnboardingView: View {
     @ObservedObject var app: ApplicationController
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
+        VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 5) {
                 BrandNameLogo(width: 250, style: .adaptive)
                 Text("Your Cursor projects, one tab away")
@@ -41,17 +41,34 @@ struct OnboardingView: View {
                 Text("CursorStack needs Accessibility permission")
                     .font(.headline)
             }
-
-            Spacer()
-
-            Button("Open Accessibility Settings") {
-                app.requestAccessibility()
-            }
-            .controlSize(.large)
-            .keyboardShortcut(.defaultAction)
         }
-        .padding(30)
+        .padding(28)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            VStack(spacing: 10) {
+                Divider()
+                HStack(spacing: 10) {
+                    Button("Open Accessibility Settings") {
+                        app.requestAccessibility()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .keyboardShortcut(.defaultAction)
+
+                    if app.permissionGranted {
+                        Button("Continue") {
+                            app.continueFromOnboarding()
+                        }
+                        .controlSize(.large)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.horizontal, 28)
+            .padding(.top, 12)
+            .padding(.bottom, 22)
+            .background(Color(nsColor: .windowBackgroundColor))
+        }
     }
 }
 

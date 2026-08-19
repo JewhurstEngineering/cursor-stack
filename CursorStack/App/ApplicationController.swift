@@ -535,9 +535,18 @@ final class ApplicationController: NSObject, ObservableObject {
         }
     }
 
+    func continueFromOnboarding() {
+        guard permissionManager.isTrusted else {
+            requestAccessibility()
+            return
+        }
+        permissionTimer?.invalidate()
+        beginWindowManagement()
+    }
+
     private func showOnboarding() {
         let view = OnboardingView(app: self)
-        present(window: &onboardingWindow, title: "Welcome to CursorStack", size: NSSize(width: 540, height: 570), view: AnyView(view))
+        present(window: &onboardingWindow, title: "Welcome to CursorStack", size: NSSize(width: 560, height: 520), view: AnyView(view))
     }
 
     private func present(window: inout NSWindow?, title: String, size: NSSize, view: AnyView) {
@@ -550,6 +559,7 @@ final class ApplicationController: NSObject, ObservableObject {
         let newWindow = NSWindow(contentViewController: hosted)
         newWindow.title = title
         newWindow.setContentSize(size)
+        newWindow.contentMinSize = NSSize(width: min(480, size.width), height: min(420, size.height))
         newWindow.styleMask = [.titled, .closable, .miniaturizable, .resizable]
         newWindow.isReleasedWhenClosed = false
         newWindow.center()
