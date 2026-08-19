@@ -198,6 +198,16 @@ struct SettingsView: View {
                 }
             }
 
+            SettingsCard(title: "Updates", symbol: "arrow.triangle.2.circlepath") {
+                SettingsActionRow(
+                    title: "CursorStack \(appVersionLabel)",
+                    detail: "Checks GitHub Releases for a signed update and installs it in place.",
+                    buttonTitle: "Check for Updates…"
+                ) {
+                    AppDelegate.shared?.checkForUpdates(nil)
+                }
+            }
+
             SettingsCard(title: "Startup", symbol: "power") {
                 SettingsToggleRow(
                     title: "Open at login",
@@ -419,6 +429,12 @@ struct SettingsView: View {
             return "Quit this build and reopen the installed copy to finish switching over."
         }
         return "Install a standalone copy so CursorStack is available outside Xcode."
+    }
+
+    private var appVersionLabel: String {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—"
+        return "\(version) (\(build))"
     }
 
     private func installToApplications() {

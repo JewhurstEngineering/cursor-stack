@@ -79,6 +79,7 @@ final class MenuBarController: NSObject {
         menu.addItem(menuItem("Manage Windows…", #selector(showPicker)))
         menu.addItem(menuItem("Manage Groups and Tab Order…", #selector(showGroupOrganizer)))
         menu.addItem(menuItem("Settings…", #selector(showSettings)))
+        menu.addItem(menuItem("Check for Updates…", #selector(checkForUpdates)))
         menu.addItem(.separator())
         let quit = NSMenuItem(title: "Quit CursorStack", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         menu.addItem(quit)
@@ -111,6 +112,10 @@ final class MenuBarController: NSObject {
 
     @objc private func showSettings() {
         app?.showSettings()
+    }
+
+    @objc private func checkForUpdates() {
+        AppDelegate.shared?.checkForUpdates(nil)
     }
 
     @objc private func activateFromMenu(_ sender: NSMenuItem) {
