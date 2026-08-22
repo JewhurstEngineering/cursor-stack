@@ -99,7 +99,7 @@ These global shortcuts can be changed under **Settings → Shortcuts**. CursorSt
 - Groups persist in `~/Library/Application Support/CursorStack/`
 - Green traffic light fills the current display work area (not a macOS Space)
 - Drag a tab onto another group’s tab strip to move it
-- Dashed tabs are saved windows that need **Reconnect** after Cursor restarts
+- Dashed tabs are saved windows that need **Reconnect** after Cursor restarts. Hover the ×, right-click, or use **Remove Closed Tabs** to dismiss them.
 - Attention is best-effort (Accessibility, then titles, then optional visual capture)
 - Nothing is uploaded. No account.
 

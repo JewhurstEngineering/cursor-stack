@@ -367,6 +367,31 @@ final class GroupManager: ObservableObject {
         objectWillChange.send()
     }
 
+    func forgetUnresolved(_ persistedID: UUID, in groupID: UUID) {
+        guard let group = groups.first(where: { $0.id == groupID }) else { return }
+        let before = group.unresolved.count
+        group.unresolved.removeAll { $0.id == persistedID }
+        guard group.unresolved.count != before else { return }
+        finishForgettingUnresolved(in: group)
+    }
+
+    func forgetAllUnresolved(in groupID: UUID) {
+        guard let group = groups.first(where: { $0.id == groupID }),
+              !group.unresolved.isEmpty else { return }
+        group.unresolved.removeAll()
+        finishForgettingUnresolved(in: group)
+    }
+
+    private func finishForgettingUnresolved(in group: RuntimeWindowGroup) {
+        if group.windows.isEmpty && group.unresolved.isEmpty {
+            removeGroup(group.id)
+            return
+        }
+        group.objectWillChange.send()
+        delegate?.groupManagerNeedsPersistence(self)
+        objectWillChange.send()
+    }
+
     func reorder(in groupID: UUID, moving windowID: UUID, to index: Int) {
         guard let group = groups.first(where: { $0.id == groupID }) else { return }
         let ids = GroupLogic.reorder(ids: group.windows.map(\.id), moving: windowID, to: index)

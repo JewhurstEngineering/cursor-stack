@@ -73,6 +73,55 @@ private struct GroupOrderList: View {
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
+                if !group.unresolved.isEmpty {
+                    HStack {
+                        Text("Closed tabs")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button("Remove All") {
+                            app.forgetAllUnresolved(in: group.id)
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.top, 10)
+                    .padding(.bottom, 4)
+
+                    ForEach(Array(group.unresolved.enumerated()), id: \.element.id) { index, unresolved in
+                        HStack(spacing: 12) {
+                            Image(systemName: "rectangle.dashed")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(.tertiary)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(unresolved.alias ?? unresolved.projectDisplayName)
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                                Text("Closed — reconnect or remove")
+                                    .font(.caption)
+                                    .foregroundStyle(.tertiary)
+                            }
+                            Spacer()
+                            Button("Reconnect") {
+                                app.reconnectUnresolved(unresolved, in: group.id)
+                            }
+                            .buttonStyle(.borderless)
+                            Button("Remove", role: .destructive) {
+                                app.forgetUnresolved(unresolved, in: group.id)
+                            }
+                            .buttonStyle(.borderless)
+                        }
+                        .padding(.horizontal, 14)
+                        .frame(height: 56)
+
+                        if index < group.unresolved.count - 1 || !group.windows.isEmpty {
+                            Divider()
+                                .padding(.leading, 40)
+                        }
+                    }
+                }
+
                 ForEach(Array(group.windows.enumerated()), id: \.element.id) { index, window in
                     HStack(spacing: 12) {
                         Image(systemName: "line.3.horizontal")

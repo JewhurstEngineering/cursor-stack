@@ -75,21 +75,13 @@ struct TabStripView: View {
                             }
                         }
                         ForEach(group.unresolved) { unresolved in
-                            Button {
-                                app.reconnectUnresolved(unresolved, in: group.id)
-                            } label: {
-                                Text(unresolved.alias ?? unresolved.projectDisplayName)
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundStyle(Color(nsColor: .labelColor).opacity(0.45))
-                                    .padding(.horizontal, 11)
-                                    .padding(.vertical, 5)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 6)
-                                            .strokeBorder(Color(nsColor: .labelColor).opacity(0.25), style: StrokeStyle(lineWidth: 1, dash: [4]))
-                                    )
-                            }
-                            .buttonStyle(.plain)
-                            .help("Reconnect \(unresolved.projectDisplayName)")
+                            UnresolvedTabItemView(
+                                unresolved: unresolved,
+                                canRemoveAll: group.unresolved.count > 1,
+                                onReconnect: { app.reconnectUnresolved(unresolved, in: group.id) },
+                                onRemove: { app.forgetUnresolved(unresolved, in: group.id) },
+                                onRemoveAll: { app.forgetAllUnresolved(in: group.id) }
+                            )
                         }
                     }
                 }
@@ -100,6 +92,11 @@ struct TabStripView: View {
                     }
                     Button("Open New Cursor Window…") {
                         app.openNewCursorWindow()
+                    }
+                    if !group.unresolved.isEmpty {
+                        Button("Remove Closed Tabs", role: .destructive) {
+                            app.forgetAllUnresolved(in: group.id)
+                        }
                     }
                     Divider()
                     Button("Maximize Group") { app.groupManager.maximize(group.id) }
@@ -175,10 +172,66 @@ struct TabStripView: View {
                 Button(group.isPaused ? "Resume Synchronization" : "Pause Synchronization") {
                     app.groupManager.pause(group.id, paused: !group.isPaused)
                 }
+                if !group.unresolved.isEmpty {
+                    Divider()
+                    Button("Remove Closed Tabs", role: .destructive) {
+                        app.forgetAllUnresolved(in: group.id)
+                    }
+                }
                 Divider()
                 Button("Show All Windows") { app.groupManager.showAllWindows(group.id) }
                 Button("Ungroup All", role: .destructive) { app.groupManager.ungroupAll(group.id) }
             }
+    }
+}
+
+private struct UnresolvedTabItemView: View {
+    let unresolved: PersistedWindowReference
+    let canRemoveAll: Bool
+    let onReconnect: () -> Void
+    let onRemove: () -> Void
+    let onRemoveAll: () -> Void
+
+    private var label: String {
+        unresolved.alias ?? unresolved.projectDisplayName
+    }
+
+    var body: some View {
+        HStack(spacing: 2) {
+            Button(action: onReconnect) {
+                Text(label)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Color(nsColor: .labelColor).opacity(0.45))
+                    .lineLimit(1)
+                    .padding(.leading, 11)
+                    .padding(.vertical, 5)
+                    .padding(.trailing, 2)
+            }
+            .buttonStyle(.plain)
+            .help("Reconnect \(unresolved.projectDisplayName)")
+
+            Button(action: onRemove) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(Color(nsColor: .labelColor).opacity(0.5))
+                    .frame(width: 14, height: 14)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help("Remove closed tab")
+            .padding(.trailing, 6)
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: 6)
+                .strokeBorder(Color(nsColor: .labelColor).opacity(0.25), style: StrokeStyle(lineWidth: 1, dash: [4]))
+        )
+        .contextMenu {
+            Button("Reconnect…", action: onReconnect)
+            Button("Remove Closed Tab", action: onRemove)
+            if canRemoveAll {
+                Button("Remove All Closed Tabs", role: .destructive, action: onRemoveAll)
+            }
+        }
     }
 }
 

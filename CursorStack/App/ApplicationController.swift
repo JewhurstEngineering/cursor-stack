@@ -807,6 +807,18 @@ final class ApplicationController: NSObject, ObservableObject {
         showWindowPicker(addingTo: groupID)
         pendingReconnect = persisted
     }
+
+    func forgetUnresolved(_ persisted: PersistedWindowReference, in groupID: UUID) {
+        if pendingReconnect?.id == persisted.id {
+            pendingReconnect = nil
+        }
+        groupManager.forgetUnresolved(persisted.id, in: groupID)
+    }
+
+    func forgetAllUnresolved(in groupID: UUID) {
+        pendingReconnect = nil
+        groupManager.forgetAllUnresolved(in: groupID)
+    }
 }
 
 extension ApplicationController: GroupManagerDelegate {

@@ -389,6 +389,84 @@ final class GroupRestoreAndReconnectTests: XCTestCase {
         XCTAssertTrue(manager.groups[0].unresolved.isEmpty)
         XCTAssertTrue(manager.ungroupedWindows.isEmpty)
     }
+
+    func testForgetUnresolvedRemovesOneSavedTab() {
+        let manager = GroupManager(
+            accessibility: AccessibilityService(),
+            discovery: CursorDiscoveryService()
+        )
+        let kept = UUID()
+        let removed = UUID()
+        manager.restore(
+            persisted: [
+                sampleGroup(
+                    name: "Work",
+                    members: [
+                        (id: kept, project: "ai-meter"),
+                        (id: removed, project: "weight")
+                    ]
+                )
+            ],
+            live: []
+        )
+
+        manager.forgetUnresolved(removed, in: manager.groups[0].id)
+
+        XCTAssertEqual(manager.groups.count, 1)
+        XCTAssertEqual(manager.groups[0].unresolved.map(\.id), [kept])
+    }
+
+    func testForgetAllUnresolvedRemovesAnEmptyGroup() {
+        let manager = GroupManager(
+            accessibility: AccessibilityService(),
+            discovery: CursorDiscoveryService()
+        )
+        manager.restore(
+            persisted: [
+                sampleGroup(
+                    name: "Work",
+                    members: [
+                        (id: UUID(), project: "ai-meter"),
+                        (id: UUID(), project: "weight")
+                    ]
+                )
+            ],
+            live: []
+        )
+
+        manager.forgetAllUnresolved(in: manager.groups[0].id)
+
+        XCTAssertTrue(manager.groups.isEmpty)
+    }
+
+    func testForgetAllUnresolvedKeepsLiveWindows() {
+        let manager = GroupManager(
+            accessibility: AccessibilityService(),
+            discovery: CursorDiscoveryService()
+        )
+        let liveID = UUID()
+        let closedID = UUID()
+        manager.restore(
+            persisted: [
+                sampleGroup(
+                    name: "Work",
+                    members: [
+                        (id: liveID, project: "ai-meter"),
+                        (id: closedID, project: "weight")
+                    ]
+                )
+            ],
+            live: [ManagedCursorWindow(id: liveID, snapshot: makeSnapshot(title: "App.swift — ai-meter — Cursor", pid: 4_303))]
+        )
+        XCTAssertEqual(manager.groups[0].windows.map(\.id), [liveID])
+        XCTAssertEqual(manager.groups[0].unresolved.map(\.id), [closedID])
+
+        manager.forgetAllUnresolved(in: manager.groups[0].id)
+
+        XCTAssertEqual(manager.groups.count, 1)
+        XCTAssertEqual(manager.groups[0].windows.map(\.id), [liveID])
+        XCTAssertTrue(manager.groups[0].unresolved.isEmpty)
+    }
 }
 
 final class CursorAppIdentityTests: XCTestCase {
@@ -458,19 +536,26 @@ private func sampleGroup(
     memberID: UUID = UUID(),
     project: String = "ai-meter"
 ) -> CursorWindowGroup {
+    sampleGroup(name: name, members: [(id: memberID, project: project)])
+}
+
+private func sampleGroup(
+    name: String,
+    members: [(id: UUID, project: String)]
+) -> CursorWindowGroup {
     CursorWindowGroup(
         id: UUID(),
         name: name,
-        members: [
+        members: members.map { member in
             PersistedWindowReference(
-                id: memberID,
-                lastTitle: "App.swift — \(project) — Cursor",
-                projectDisplayName: project,
+                id: member.id,
+                lastTitle: "App.swift — \(member.project) — Cursor",
+                projectDisplayName: member.project,
                 alias: nil,
                 lastSeen: Date()
             )
-        ],
-        activeMemberID: memberID,
+        },
+        activeMemberID: members.first?.id,
         frame: CodableRect(CGRect(x: 0, y: 0, width: 800, height: 600)),
         settings: GroupSettings()
     )
