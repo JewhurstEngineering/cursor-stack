@@ -522,13 +522,30 @@ final class ApplicationController: NSObject, ObservableObject {
         }
         alert.addButton(withTitle: "New Group")
         alert.addButton(withTitle: "Ignore")
-        let response = alert.runModal()
+        let response = runForegroundModal(alert)
         if response == .alertFirstButtonReturn, let group = groupManager.preferredGroup() {
             groupManager.add(windows: [window], to: group.id)
         } else if (groupManager.preferredGroup() == nil && response == .alertFirstButtonReturn) ||
                     (groupManager.preferredGroup() != nil && response == .alertSecondButtonReturn) {
             groupManager.createGroup(name: window.displayName, windows: [window])
         }
+    }
+
+    /// `runModal()` will sit behind Cursor unless this app is active first.
+    @discardableResult
+    private func runForegroundModal(_ alert: NSAlert) -> NSApplication.ModalResponse {
+        let previousPolicy = NSApp.activationPolicy()
+        if previousPolicy != .regular {
+            NSApp.setActivationPolicy(.regular)
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        alert.window.collectionBehavior.insert(.moveToActiveSpace)
+        alert.window.level = .floating
+        let response = alert.runModal()
+        if previousPolicy != .regular {
+            NSApp.setActivationPolicy(previousPolicy)
+        }
+        return response
     }
 
     private func applyActivationPolicy() {
