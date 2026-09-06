@@ -467,6 +467,95 @@ final class GroupRestoreAndReconnectTests: XCTestCase {
         XCTAssertEqual(manager.groups[0].windows.map(\.id), [liveID])
         XCTAssertTrue(manager.groups[0].unresolved.isEmpty)
     }
+
+    func testReplacementWindowRebindsInsteadOfCreatingADuplicate() {
+        let manager = GroupManager(
+            accessibility: AccessibilityService(),
+            discovery: CursorDiscoveryService()
+        )
+        let original = ManagedCursorWindow(
+            snapshot: makeSnapshot(title: "App.swift — weight — Cursor", pid: 5_101)
+        )
+        manager.createGroup(name: "Work", windows: [original])
+        let originalID = original.id
+
+        manager.ingestLiveWindows([
+            makeSnapshot(title: "App.swift — weight — Cursor", pid: 5_202)
+        ])
+
+        XCTAssertEqual(manager.groups.count, 1)
+        XCTAssertEqual(manager.groups[0].windows.map(\.id), [originalID])
+        XCTAssertTrue(manager.groups[0].unresolved.isEmpty)
+        XCTAssertTrue(manager.ungroupedWindows.isEmpty)
+        XCTAssertFalse(manager.groups[0].windows[0].isUnavailable)
+    }
+
+    func testParkedTabCollapsesWhenTheSameProjectIsAlreadyLive() {
+        let manager = GroupManager(
+            accessibility: AccessibilityService(),
+            discovery: CursorDiscoveryService()
+        )
+        let live = ManagedCursorWindow(
+            snapshot: makeSnapshot(title: "App.swift — weight — Cursor", pid: 5_303)
+        )
+        manager.createGroup(name: "Work", windows: [live])
+        manager.groups[0].unresolved = [
+            PersistedWindowReference(
+                id: UUID(),
+                lastTitle: "App.swift — weight — Cursor",
+                projectDisplayName: "weight",
+                alias: nil,
+                lastSeen: Date()
+            )
+        ]
+
+        manager.ingestLiveWindows([live.snapshot])
+
+        XCTAssertEqual(manager.groups[0].windows.map(\.id), [live.id])
+        XCTAssertTrue(manager.groups[0].unresolved.isEmpty)
+    }
+
+    func testAddReconnectsMatchingClosedTabInsteadOfDuplicating() {
+        let manager = GroupManager(
+            accessibility: AccessibilityService(),
+            discovery: CursorDiscoveryService()
+        )
+        let closedID = UUID()
+        manager.restore(
+            persisted: [sampleGroup(name: "Work", memberID: closedID, project: "hook")],
+            live: []
+        )
+        let replacement = ManagedCursorWindow(
+            snapshot: makeSnapshot(title: "index.ts — hook — Cursor", pid: 5_404)
+        )
+
+        manager.add(windows: [replacement], to: manager.groups[0].id)
+
+        XCTAssertEqual(manager.groups[0].windows.map(\.id), [closedID])
+        XCTAssertTrue(manager.groups[0].unresolved.isEmpty)
+        XCTAssertTrue(manager.ungroupedWindows.isEmpty)
+    }
+
+    func testOverlappingReplacementParksThenCollapsesTheDuplicate() {
+        let manager = GroupManager(
+            accessibility: AccessibilityService(),
+            discovery: CursorDiscoveryService()
+        )
+        let original = ManagedCursorWindow(
+            snapshot: makeSnapshot(title: "App.swift — weight — Cursor", pid: 5_505)
+        )
+        let replacement = ManagedCursorWindow(
+            snapshot: makeSnapshot(title: "App.swift — weight — Cursor", pid: 5_606)
+        )
+        manager.createGroup(name: "Work", windows: [original, replacement])
+
+        for _ in 0..<GroupMembershipPolicy.missThreshold {
+            manager.ingestLiveWindows([replacement.snapshot])
+        }
+
+        XCTAssertEqual(manager.groups[0].windows.map(\.id), [replacement.id])
+        XCTAssertTrue(manager.groups[0].unresolved.isEmpty)
+    }
 }
 
 final class CursorAppIdentityTests: XCTestCase {

@@ -423,6 +423,10 @@ final class GroupManager: ObservableObject {
         guard let group = groups.first(where: { $0.id == groupID }) else { return }
         for window in windows {
             guard !group.windows.contains(where: { $0.id == window.id }) else { continue }
+            if let match = matchingUnresolved(for: window, in: group) {
+                reconnect(persisted: match, to: window, in: groupID, applyFrame: true)
+                continue
+            }
             group.windows.append(window)
             ungroupedWindows.removeAll { $0.id == window.id }
             applyFrameIfNeeded(group.synchronizedFrame, to: window)
@@ -515,17 +519,21 @@ final class GroupManager: ObservableObject {
                 window.apply(unmatched.remove(at: index))
                 consecutiveMisses[window.id] = 0
             } else if !window.isClosed {
-                let misses = (consecutiveMisses[window.id] ?? 0) + 1
-                consecutiveMisses[window.id] = misses
+                consecutiveMisses[window.id] = (consecutiveMisses[window.id] ?? 0) + 1
                 window.isUnavailable = true
-                if GroupMembershipPolicy.shouldParkAsUnresolved(consecutiveMisses: misses) {
-                    if group(containing: window.id) != nil {
-                        parkAsUnresolved(window, persist: false)
-                        membershipChanged = true
-                    } else {
-                        markClosed(window)
-                    }
-                }
+            }
+        }
+
+        rebindMissingGroupedWindows(using: &unmatched)
+
+        for window in allManagedWindows where window.isUnavailable && !window.isClosed {
+            let misses = consecutiveMisses[window.id] ?? 0
+            guard GroupMembershipPolicy.shouldParkAsUnresolved(consecutiveMisses: misses) else { continue }
+            if group(containing: window.id) != nil {
+                parkAsUnresolved(window, persist: false)
+                membershipChanged = true
+            } else {
+                markClosed(window)
             }
         }
 
@@ -543,6 +551,10 @@ final class GroupManager: ObservableObject {
             let window = ManagedCursorWindow(snapshot: snapshot)
             ungroupedWindows.append(window)
             delegate?.groupManager(self, didDetectNewWindow: window)
+        }
+
+        if collapseUnresolvedAgainstLiveWindows() {
+            membershipChanged = true
         }
 
         if membershipChanged {
@@ -629,6 +641,66 @@ final class GroupManager: ObservableObject {
             delegate?.groupManagerNeedsPersistence(self)
         }
         objectWillChange.send()
+    }
+
+    @discardableResult
+    private func rebindMissingGroupedWindows(using unmatched: inout [AXWindowSnapshot]) -> Bool {
+        let missing = groups.flatMap(\.windows).filter { $0.isUnavailable && !$0.isClosed }
+        guard !missing.isEmpty, !unmatched.isEmpty else { return false }
+
+        let persisted = missing.map { $0.persistedReference() }
+        let live = unmatched.map { (title: $0.title, projectDisplayName: $0.projectDisplayName) }
+        let assignments = WindowMatcher.match(persisted: persisted, live: live)
+        var used = Set<Int>()
+        var rebound = false
+
+        for window in missing {
+            guard let liveIndex = assignments[window.id], !used.contains(liveIndex) else { continue }
+            used.insert(liveIndex)
+            knownElementTokens.remove(CFHash(window.element))
+            window.apply(unmatched[liveIndex])
+            consecutiveMisses[window.id] = 0
+            knownElementTokens.insert(CFHash(window.element))
+            rebound = true
+            if CSLog.debugEnabled {
+                CSLog.group.info("Rebound \(window.displayName, privacy: .public) onto a replacement Cursor window")
+            }
+        }
+
+        if !used.isEmpty {
+            unmatched = unmatched.enumerated().compactMap { used.contains($0.offset) ? nil : $0.element }
+        }
+        return rebound
+    }
+
+    @discardableResult
+    private func collapseUnresolvedAgainstLiveWindows() -> Bool {
+        var changed = false
+        for group in groups {
+            guard !group.unresolved.isEmpty else { continue }
+            let liveWindows = group.windows.filter { !$0.isClosed && !$0.isUnavailable }
+            guard !liveWindows.isEmpty else { continue }
+            let live = liveWindows.map { (title: $0.title, projectDisplayName: $0.projectDisplayName) }
+            let assignments = WindowMatcher.match(persisted: group.unresolved, live: live)
+            guard !assignments.isEmpty else { continue }
+            let removedIDs = Set(assignments.keys)
+            group.unresolved.removeAll { removedIDs.contains($0.id) }
+            if CSLog.debugEnabled {
+                CSLog.group.info(
+                    "Dropped \(removedIDs.count) closed tab(s) that already have a live window in \(group.name, privacy: .public)"
+                )
+            }
+            group.objectWillChange.send()
+            changed = true
+        }
+        return changed
+    }
+
+    private func matchingUnresolved(for window: ManagedCursorWindow, in group: RuntimeWindowGroup) -> PersistedWindowReference? {
+        guard !group.unresolved.isEmpty else { return nil }
+        let live = [(title: window.title, projectDisplayName: window.projectDisplayName)]
+        let assignments = WindowMatcher.match(persisted: group.unresolved, live: live)
+        return group.unresolved.first { assignments[$0.id] != nil }
     }
 
     @discardableResult
