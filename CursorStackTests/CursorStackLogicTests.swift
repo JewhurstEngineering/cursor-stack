@@ -91,7 +91,12 @@ final class ScreenCoordinateConverterTests: XCTestCase {
     func testTabPanelSitsAboveCursorTitlebar() {
         let window = CGRect(x: 100, y: 200, width: 800, height: 600)
         let visible = CGRect(x: 0, y: 0, width: 1440, height: 900)
-        let panel = ScreenCoordinateConverter.tabPanelFrame(windowFrame: window, height: 36, visibleFrame: visible)
+        let panel = ScreenCoordinateConverter.tabPanelFrame(
+            windowFrame: window,
+            position: .top,
+            thickness: 36,
+            visibleFrame: visible
+        )
         XCTAssertEqual(panel.minX, 100)
         XCTAssertEqual(panel.width, 800)
         XCTAssertEqual(panel.minY, 800)
@@ -99,22 +104,142 @@ final class ScreenCoordinateConverterTests: XCTestCase {
         XCTAssertEqual(panel.height, 36)
     }
 
+    func testTabPanelSitsBelowCursor() {
+        let window = CGRect(x: 100, y: 200, width: 800, height: 600)
+        let visible = CGRect(x: 0, y: 0, width: 1440, height: 900)
+        let panel = ScreenCoordinateConverter.tabPanelFrame(
+            windowFrame: window,
+            position: .bottom,
+            thickness: 36,
+            visibleFrame: visible
+        )
+        XCTAssertEqual(panel.minX, 100)
+        XCTAssertEqual(panel.width, 800)
+        XCTAssertEqual(panel.minY, 164)
+        XCTAssertEqual(panel.maxY, 200)
+        XCTAssertEqual(panel.height, 36)
+    }
+
+    func testTabPanelSitsLeftOfCursor() {
+        let window = CGRect(x: 200, y: 200, width: 800, height: 600)
+        let visible = CGRect(x: 0, y: 0, width: 1440, height: 900)
+        let panel = ScreenCoordinateConverter.tabPanelFrame(
+            windowFrame: window,
+            position: .left,
+            thickness: 148,
+            visibleFrame: visible
+        )
+        XCTAssertEqual(panel.minX, 52)
+        XCTAssertEqual(panel.width, 148)
+        XCTAssertEqual(panel.minY, 200)
+        XCTAssertEqual(panel.height, 600)
+    }
+
+    func testTabPanelSitsRightOfCursor() {
+        let window = CGRect(x: 100, y: 200, width: 800, height: 600)
+        let visible = CGRect(x: 0, y: 0, width: 1440, height: 900)
+        let panel = ScreenCoordinateConverter.tabPanelFrame(
+            windowFrame: window,
+            position: .right,
+            thickness: 148,
+            visibleFrame: visible
+        )
+        XCTAssertEqual(panel.minX, 900)
+        XCTAssertEqual(panel.width, 148)
+        XCTAssertEqual(panel.minY, 200)
+        XCTAssertEqual(panel.height, 600)
+    }
+
     func testMaximizeLeavesRoomForTabBar() {
         let visible = CGRect(x: 0, y: 0, width: 1512, height: 944)
-        let content = ScreenCoordinateConverter.maximizedContentFrame(visibleFrame: visible, tabHeight: 36)
+        let content = ScreenCoordinateConverter.maximizedContentFrame(
+            visibleFrame: visible,
+            position: .top,
+            thickness: 36
+        )
         XCTAssertEqual(content.height, 908)
         XCTAssertEqual(content.width, 1512)
         XCTAssertEqual(content.maxY, 908)
+    }
+
+    func testMaximizeLeavesRoomForBottomTabBar() {
+        let visible = CGRect(x: 0, y: 0, width: 1512, height: 944)
+        let content = ScreenCoordinateConverter.maximizedContentFrame(
+            visibleFrame: visible,
+            position: .bottom,
+            thickness: 36
+        )
+        XCTAssertEqual(content.minY, 36)
+        XCTAssertEqual(content.height, 908)
+        XCTAssertEqual(content.width, 1512)
+    }
+
+    func testMaximizeLeavesRoomForLeftTabBar() {
+        let visible = CGRect(x: 0, y: 0, width: 1512, height: 944)
+        let content = ScreenCoordinateConverter.maximizedContentFrame(
+            visibleFrame: visible,
+            position: .left,
+            thickness: 148
+        )
+        XCTAssertEqual(content.minX, 148)
+        XCTAssertEqual(content.width, 1364)
+        XCTAssertEqual(content.height, 944)
+    }
+
+    func testMaximizeLeavesRoomForRightTabBar() {
+        let visible = CGRect(x: 0, y: 0, width: 1512, height: 944)
+        let content = ScreenCoordinateConverter.maximizedContentFrame(
+            visibleFrame: visible,
+            position: .right,
+            thickness: 148
+        )
+        XCTAssertEqual(content.minX, 0)
+        XCTAssertEqual(content.width, 1364)
+        XCTAssertEqual(content.height, 944)
     }
 
     func testFullHeightWindowShrinksToLeaveTabRoom() {
         let visible = CGRect(x: 0, y: 0, width: 1512, height: 944)
         let content = ScreenCoordinateConverter.contentFrameLeavingTabRoom(
             visible,
-            tabHeight: 36,
+            position: .top,
+            thickness: 36,
             visibleFrame: visible
         )
         XCTAssertEqual(content, CGRect(x: 0, y: 0, width: 1512, height: 908))
+    }
+
+    func testFullWidthWindowShrinksToLeaveLeftTabRoom() {
+        let visible = CGRect(x: 0, y: 0, width: 1512, height: 944)
+        let content = ScreenCoordinateConverter.contentFrameLeavingTabRoom(
+            visible,
+            position: .left,
+            thickness: 148,
+            visibleFrame: visible
+        )
+        XCTAssertEqual(content, CGRect(x: 148, y: 0, width: 1364, height: 944))
+    }
+
+    func testFullHeightWindowShrinksToLeaveBottomTabRoom() {
+        let visible = CGRect(x: 0, y: 0, width: 1512, height: 944)
+        let content = ScreenCoordinateConverter.contentFrameLeavingTabRoom(
+            visible,
+            position: .bottom,
+            thickness: 36,
+            visibleFrame: visible
+        )
+        XCTAssertEqual(content, CGRect(x: 0, y: 36, width: 1512, height: 908))
+    }
+
+    func testFullWidthWindowShrinksToLeaveRightTabRoom() {
+        let visible = CGRect(x: 0, y: 0, width: 1512, height: 944)
+        let content = ScreenCoordinateConverter.contentFrameLeavingTabRoom(
+            visible,
+            position: .right,
+            thickness: 148,
+            visibleFrame: visible
+        )
+        XCTAssertEqual(content, CGRect(x: 0, y: 0, width: 1364, height: 944))
     }
 
     func testFloatingWindowMovesDownToLeaveTabRoomWithoutShrinking() {
@@ -122,17 +247,72 @@ final class ScreenCoordinateConverterTests: XCTestCase {
         let original = CGRect(x: 100, y: 400, width: 800, height: 500)
         let content = ScreenCoordinateConverter.contentFrameLeavingTabRoom(
             original,
-            tabHeight: 36,
+            position: .top,
+            thickness: 36,
             visibleFrame: visible
         )
         XCTAssertEqual(content, CGRect(x: 100, y: 364, width: 800, height: 500))
     }
 
+    func testFloatingWindowMovesRightToLeaveLeftTabRoomWithoutShrinking() {
+        let visible = CGRect(x: 0, y: 0, width: 1440, height: 900)
+        let original = CGRect(x: 0, y: 200, width: 800, height: 500)
+        let content = ScreenCoordinateConverter.contentFrameLeavingTabRoom(
+            original,
+            position: .left,
+            thickness: 148,
+            visibleFrame: visible
+        )
+        XCTAssertEqual(content, CGRect(x: 148, y: 200, width: 800, height: 500))
+    }
+
     func testWindowFollowsPanelBelowItsBottomEdge() {
         let panel = CGRect(x: 100, y: 800, width: 800, height: 36)
-        let window = ScreenCoordinateConverter.windowFrame(matchingTabPanel: panel, windowHeight: 600)
+        let window = ScreenCoordinateConverter.windowFrame(
+            matchingTabPanel: panel,
+            windowSize: CGSize(width: 800, height: 600),
+            position: .top
+        )
         XCTAssertEqual(window.minX, 100)
         XCTAssertEqual(window.maxY, 800)
+        XCTAssertEqual(window.height, 600)
+    }
+
+    func testWindowFollowsPanelAboveItsTopEdge() {
+        let panel = CGRect(x: 100, y: 164, width: 800, height: 36)
+        let window = ScreenCoordinateConverter.windowFrame(
+            matchingTabPanel: panel,
+            windowSize: CGSize(width: 800, height: 600),
+            position: .bottom
+        )
+        XCTAssertEqual(window.minX, 100)
+        XCTAssertEqual(window.minY, 200)
+        XCTAssertEqual(window.height, 600)
+    }
+
+    func testWindowFollowsPanelToTheRight() {
+        let panel = CGRect(x: 52, y: 200, width: 148, height: 600)
+        let window = ScreenCoordinateConverter.windowFrame(
+            matchingTabPanel: panel,
+            windowSize: CGSize(width: 800, height: 600),
+            position: .left
+        )
+        XCTAssertEqual(window.minX, 200)
+        XCTAssertEqual(window.minY, 200)
+        XCTAssertEqual(window.width, 800)
+        XCTAssertEqual(window.height, 600)
+    }
+
+    func testWindowFollowsPanelToTheLeft() {
+        let panel = CGRect(x: 900, y: 200, width: 148, height: 600)
+        let window = ScreenCoordinateConverter.windowFrame(
+            matchingTabPanel: panel,
+            windowSize: CGSize(width: 800, height: 600),
+            position: .right
+        )
+        XCTAssertEqual(window.maxX, 900)
+        XCTAssertEqual(window.minY, 200)
+        XCTAssertEqual(window.width, 800)
         XCTAssertEqual(window.height, 600)
     }
 
@@ -140,6 +320,33 @@ final class ScreenCoordinateConverterTests: XCTestCase {
         let a = CGRect(x: 10, y: 10, width: 100, height: 100)
         let b = CGRect(x: 11, y: 9.5, width: 100.5, height: 101)
         XCTAssertTrue(ScreenCoordinateConverter.framesApproximatelyEqual(a, b, tolerance: 2))
+    }
+}
+
+final class TabBarSettingsTests: XCTestCase {
+    func testMissingPositionAndWidthDecodeToDefaults() throws {
+        var object = try JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(AppSettings())
+        ) as! [String: Any]
+        object.removeValue(forKey: "tabBarPosition")
+        object.removeValue(forKey: "tabWidth")
+        let decoded = try JSONDecoder().decode(
+            AppSettings.self,
+            from: try JSONSerialization.data(withJSONObject: object)
+        )
+        XCTAssertEqual(decoded.effectiveTabBarPosition, .top)
+        XCTAssertEqual(decoded.effectiveTabWidth, 148)
+        XCTAssertEqual(decoded.tabBarThickness, 36)
+        XCTAssertEqual(decoded.effectiveTabBarPosition.isVertical, false)
+    }
+
+    func testVerticalThicknessUsesTabWidth() {
+        var settings = AppSettings()
+        settings.tabBarPosition = .left
+        settings.tabWidth = 148
+        XCTAssertEqual(settings.tabBarThickness, 148)
+        settings.tabBarPosition = .top
+        XCTAssertEqual(settings.tabBarThickness, 36)
     }
 }
 

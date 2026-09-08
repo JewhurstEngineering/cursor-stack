@@ -3,7 +3,8 @@ import Foundation
 
 @MainActor
 protocol GroupManagerDelegate: AnyObject {
-    var tabHeight: CGFloat { get }
+    var tabBarPosition: TabBarPosition { get }
+    var tabBarThickness: CGFloat { get }
     func groupManager(_ manager: GroupManager, didCreate group: RuntimeWindowGroup)
     func groupManager(_ manager: GroupManager, didRemove groupID: UUID)
     func groupManagerNeedsPersistence(_ manager: GroupManager)
@@ -240,8 +241,13 @@ final class GroupManager: ObservableObject {
                 < $1.frame.intersection(group.synchronizedFrame).width * $1.frame.intersection(group.synchronizedFrame).height
         } ?? NSScreen.main
         guard let visible = screen?.visibleFrame else { return }
-        let tabHeight = delegate?.tabHeight ?? 36
-        let content = ScreenCoordinateConverter.maximizedContentFrame(visibleFrame: visible, tabHeight: tabHeight)
+        let position = delegate?.tabBarPosition ?? .top
+        let thickness = delegate?.tabBarThickness ?? 36
+        let content = ScreenCoordinateConverter.maximizedContentFrame(
+            visibleFrame: visible,
+            position: position,
+            thickness: thickness
+        )
         if !ScreenCoordinateConverter.framesApproximatelyEqual(group.synchronizedFrame, content, tolerance: 8) {
             group.frameBeforeMaximize = group.synchronizedFrame
         }
@@ -258,9 +264,14 @@ final class GroupManager: ObservableObject {
             $0.frame.intersection(group.synchronizedFrame).width * $0.frame.intersection(group.synchronizedFrame).height
                 < $1.frame.intersection(group.synchronizedFrame).width * $1.frame.intersection(group.synchronizedFrame).height
         } ?? NSScreen.main
-        let tabHeight = delegate?.tabHeight ?? 36
+        let position = delegate?.tabBarPosition ?? .top
+        let thickness = delegate?.tabBarThickness ?? 36
         if let visible = screen?.visibleFrame {
-            let maximized = ScreenCoordinateConverter.maximizedContentFrame(visibleFrame: visible, tabHeight: tabHeight)
+            let maximized = ScreenCoordinateConverter.maximizedContentFrame(
+                visibleFrame: visible,
+                position: position,
+                thickness: thickness
+            )
             if ScreenCoordinateConverter.framesApproximatelyEqual(group.synchronizedFrame, maximized, tolerance: 8),
                let restored = group.frameBeforeMaximize {
                 synchronizeFrame(restored, in: groupID)
@@ -302,10 +313,15 @@ final class GroupManager: ObservableObject {
     func moveGroup(_ groupID: UUID, matchingTabPanel panelFrame: CGRect) {
         guard let group = groups.first(where: { $0.id == groupID }) else { return }
         guard !group.isApplyingSynchronizedFrame else { return }
-        let height = max(group.synchronizedFrame.height, 200)
+        let position = delegate?.tabBarPosition ?? .top
+        let size = CGSize(
+            width: max(group.synchronizedFrame.width, 200),
+            height: max(group.synchronizedFrame.height, 200)
+        )
         let newFrame = ScreenCoordinateConverter.windowFrame(
             matchingTabPanel: panelFrame,
-            windowHeight: height
+            windowSize: size,
+            position: position
         )
         group.synchronizedFrame = frameLeavingTabRoom(newFrame)
         applyCanonicalFrame(in: group, raising: nil)
@@ -809,7 +825,8 @@ final class GroupManager: ObservableObject {
         guard let visibleFrame = screen?.visibleFrame else { return frame }
         return ScreenCoordinateConverter.contentFrameLeavingTabRoom(
             frame,
-            tabHeight: delegate?.tabHeight ?? 36,
+            position: delegate?.tabBarPosition ?? .top,
+            thickness: delegate?.tabBarThickness ?? 36,
             visibleFrame: visibleFrame
         )
     }

@@ -55,7 +55,11 @@ final class GroupTabPanelController: NSObject, NSWindowDelegate {
         window.contentView = hosting
         self.window = window
         super.init()
-        align(to: group.synchronizedFrame, tabHeight: app.settingsStore.settings.tabHeight)
+        align(
+            to: group.synchronizedFrame,
+            position: app.settingsStore.settings.effectiveTabBarPosition,
+            thickness: app.settingsStore.settings.tabBarThickness
+        )
         refreshContent()
         window.orderFrontRegardless()
         isHidden = false
@@ -67,7 +71,7 @@ final class GroupTabPanelController: NSObject, NSWindowDelegate {
         }
     }
 
-    func align(to windowFrame: CGRect, tabHeight: CGFloat) {
+    func align(to windowFrame: CGRect, position: TabBarPosition, thickness: CGFloat) {
         guard !isUserMoving else { return }
         let screen = NSScreen.screens.max {
             $0.frame.intersection(windowFrame).area < $1.frame.intersection(windowFrame).area
@@ -75,12 +79,20 @@ final class GroupTabPanelController: NSObject, NSWindowDelegate {
         let visible = screen?.visibleFrame ?? windowFrame
         var frame = ScreenCoordinateConverter.tabPanelFrame(
             windowFrame: windowFrame,
-            height: tabHeight,
+            position: position,
+            thickness: thickness,
             visibleFrame: visible
         )
-        frame.size.height = max(24, tabHeight)
-        window.contentMinSize = NSSize(width: 120, height: frame.height)
-        window.contentMaxSize = NSSize(width: 20_000, height: frame.height)
+        let thickness = ScreenCoordinateConverter.clampedThickness(thickness, position: position)
+        if position.isVertical {
+            frame.size.width = thickness
+            window.contentMinSize = NSSize(width: frame.width, height: 120)
+            window.contentMaxSize = NSSize(width: frame.width, height: 20_000)
+        } else {
+            frame.size.height = thickness
+            window.contentMinSize = NSSize(width: 120, height: frame.height)
+            window.contentMaxSize = NSSize(width: 20_000, height: frame.height)
+        }
         guard !ScreenCoordinateConverter.framesApproximatelyEqual(window.frame, frame, tolerance: 1) else {
             return
         }

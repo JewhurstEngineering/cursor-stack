@@ -45,7 +45,8 @@ final class ApplicationController: NSObject, ObservableObject {
     @Published var targetedTabWindowID: UUID?
     var pendingReconnect: PersistedWindowReference?
 
-    var tabHeight: CGFloat { settingsStore.settings.tabHeight }
+    var tabBarPosition: TabBarPosition { settingsStore.settings.effectiveTabBarPosition }
+    var tabBarThickness: CGFloat { settingsStore.settings.tabBarThickness }
 
     func start() {
         applyAppAppearance()
@@ -409,7 +410,6 @@ final class ApplicationController: NSObject, ObservableObject {
     }
 
     private func realignPanels(refreshTabs: Bool = true) {
-        let tabHeight = settingsStore.settings.tabHeight
         let showChrome = shouldShowChrome
         for group in groupManager.groups {
             if tabPanels[group.id] == nil {
@@ -422,7 +422,11 @@ final class ApplicationController: NSObject, ObservableObject {
             }
             tabPanels[group.id]?.setHidden(false)
             let frame = group.activeWindow?.frame ?? group.synchronizedFrame
-            tabPanels[group.id]?.align(to: frame, tabHeight: tabHeight)
+            tabPanels[group.id]?.align(
+                to: frame,
+                position: settingsStore.settings.effectiveTabBarPosition,
+                thickness: settingsStore.settings.tabBarThickness
+            )
             if refreshTabs {
                 tabPanels[group.id]?.refreshContent()
             }

@@ -241,12 +241,49 @@ enum AppAppearance: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+enum TabBarPosition: String, Codable, CaseIterable, Identifiable {
+    case top
+    case bottom
+    case left
+    case right
+
+    var id: String { rawValue }
+
+    var isVertical: Bool {
+        self == .left || self == .right
+    }
+
+    var title: String {
+        switch self {
+        case .top: "Top"
+        case .bottom: "Bottom"
+        case .left: "Left"
+        case .right: "Right"
+        }
+    }
+
+    var caption: String {
+        switch self {
+        case .top:
+            "The bar sits above Cursor in its own row, so Cursor’s title bar and search stay usable. Compact leaves the most room."
+        case .bottom:
+            "The bar sits below Cursor, above the Dock. Compact leaves the most room."
+        case .left:
+            "The bar sits beside Cursor’s file sidebar. Compact leaves the most room."
+        case .right:
+            "The bar sits beside Cursor’s Agent panel. Compact leaves the most room."
+        }
+    }
+}
+
 struct AppSettings: Codable, Equatable {
     var launchAtLogin: Bool = false
     var showMenuBarIcon: Bool = true
     var showDockIcon: Bool = true
 
     var tabHeight: CGFloat = 36
+    var tabBarPosition: TabBarPosition?
+    var tabWidth: CGFloat?
     var appAppearance: AppAppearance?
     var tabBarAppearance: AppAppearance?
     var showProjectName: Bool = true
@@ -273,6 +310,18 @@ struct AppSettings: Codable, Equatable {
 
     var effectiveAppAppearance: AppAppearance {
         appAppearance ?? tabBarAppearance ?? .system
+    }
+
+    var effectiveTabBarPosition: TabBarPosition {
+        tabBarPosition ?? .top
+    }
+
+    var effectiveTabWidth: CGFloat {
+        tabWidth ?? 148
+    }
+
+    var tabBarThickness: CGFloat {
+        effectiveTabBarPosition.isVertical ? effectiveTabWidth : tabHeight
     }
 }
 

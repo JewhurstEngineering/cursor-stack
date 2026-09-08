@@ -5,189 +5,274 @@ struct TabStripView: View {
     @ObservedObject var group: RuntimeWindowGroup
     @ObservedObject var app: ApplicationController
 
+    private var position: TabBarPosition {
+        app.settingsStore.settings.effectiveTabBarPosition
+    }
+
     var body: some View {
-        HStack(spacing: 10) {
-                TrafficLights(
-                    onClose: { NSApp.terminate(nil) },
-                    onMiniaturize: { app.groupManager.minimizeGroup(group.id) },
-                    onZoom: { app.groupManager.toggleMaximize(group.id) }
+        Group {
+            if position.isVertical {
+                verticalStrip
+            } else {
+                horizontalStrip
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(TitlebarBackground())
+        .overlay(alignment: separatorAlignment) {
+            Rectangle()
+                .fill(Color(nsColor: .separatorColor))
+                .frame(
+                    width: position.isVertical ? 1 : nil,
+                    height: position.isVertical ? nil : 1
                 )
-                .padding(.leading, 8)
+        }
+        .onTapGesture(count: 2) {
+            app.groupManager.toggleMaximize(group.id)
+        }
+        .contextMenu {
+            stripContextMenu
+        }
+    }
 
-                StackBarBrandMark()
-                    .frame(width: 98)
-                    .help("CursorStack")
+    private var separatorAlignment: Alignment {
+        switch position {
+        case .top: .bottom
+        case .bottom: .top
+        case .left: .trailing
+        case .right: .leading
+        }
+    }
 
-                StackWindowDragHandle()
-                    .frame(width: 14, height: 24)
+    private var horizontalStrip: some View {
+        HStack(spacing: 10) {
+            TrafficLights(
+                onClose: { NSApp.terminate(nil) },
+                onMiniaturize: { app.groupManager.minimizeGroup(group.id) },
+                onZoom: { app.groupManager.toggleMaximize(group.id) }
+            )
+            .padding(.leading, 8)
 
-                Rectangle()
-                    .fill(Color(nsColor: .separatorColor))
-                    .frame(width: 1, height: 18)
+            StackBarBrandMark()
+                .frame(width: 98)
+                .help("CursorStack")
 
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 2) {
-                        ForEach(Array(group.windows.enumerated()), id: \.element.id) { index, window in
-                            TabItemView(
-                                window: window,
-                                selected: window.id == group.activeWindowID,
-                                showDot: app.settingsStore.settings.showTabIndicator && window.attentionState.showsTabDot,
-                                showWorking: app.settingsStore.settings.showTabIndicator && window.attentionState.showsWorkingIndicator,
-                                showFullTitle: app.settingsStore.settings.showFullTitle,
-                                showProjectName: app.settingsStore.settings.showProjectName
-                            )
-                            .onTapGesture {
-                                app.activate(windowID: window.id, in: group.id)
-                            }
-                            .contextMenu {
-                                Button("Switch To") { app.activate(windowID: window.id, in: group.id) }
-                                Button("Move Left") { app.groupManager.reorder(in: group.id, moving: window.id, to: max(0, index - 1)) }
-                                Button("Move Right") { app.groupManager.reorder(in: group.id, moving: window.id, to: index + 1) }
-                                Button("Manage Tab Order…") { app.showGroupOrganizer(groupID: group.id) }
-                                Divider()
-                                Button("Rename Tab…") { app.promptRenameTab(window) }
-                                Divider()
-                                Button("Detach From Group") { app.groupManager.detach(windowID: window.id, from: group.id) }
-                                Button("Close Cursor Window") { app.groupManager.closeCursorWindow(window.id) }
-                            }
-                            .onDrag {
-                                app.draggedTabWindowID = window.id
-                                return NSItemProvider(object: window.id.uuidString as NSString)
-                            }
-                            .onDrop(
-                                of: [.text],
-                                delegate: WindowOrderDropDelegate(
-                                    targetWindowID: window.id,
-                                    groupID: group.id,
-                                    app: app,
-                                    draggedWindowID: $app.draggedTabWindowID,
-                                    targetedWindowID: $app.targetedTabWindowID
-                                )
-                            )
-                            .overlay(alignment: .leading) {
-                                if app.targetedTabWindowID == window.id {
-                                    Capsule()
-                                        .fill(Color.accentColor)
-                                        .frame(width: 3)
-                                        .padding(.vertical, 3)
-                                        .offset(x: -2)
-                                }
-                            }
-                        }
-                        ForEach(group.unresolved) { unresolved in
-                            UnresolvedTabItemView(
-                                unresolved: unresolved,
-                                canRemoveAll: group.unresolved.count > 1,
-                                onReconnect: { app.reconnectUnresolved(unresolved, in: group.id) },
-                                onRemove: { app.forgetUnresolved(unresolved, in: group.id) },
-                                onRemoveAll: { app.forgetAllUnresolved(in: group.id) }
-                            )
-                        }
-                    }
+            StackWindowDragHandle()
+                .frame(width: 14, height: 24)
+
+            Rectangle()
+                .fill(Color(nsColor: .separatorColor))
+                .frame(width: 1, height: 18)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 2) {
+                    tabItems(fillsWidth: false)
                 }
+            }
 
-                Menu {
-                    Button("Add Existing Cursor Window…") {
-                        app.showWindowPicker(addingTo: group.id)
-                    }
-                    Button("Open New Cursor Window…") {
-                        app.openNewCursorWindow()
-                    }
-                    if !group.unresolved.isEmpty {
-                        Button("Remove Closed Tabs", role: .destructive) {
-                            app.forgetAllUnresolved(in: group.id)
-                        }
-                    }
-                    Divider()
-                    Button("Maximize Group") { app.groupManager.maximize(group.id) }
-                    Button(group.isPaused ? "Resume Synchronization" : "Pause Synchronization") {
-                        app.groupManager.pause(group.id, paused: !group.isPaused)
-                    }
-                    Button("Rename Group…") { app.promptRenameGroup(group) }
-                    Button("Manage Tab Order…") { app.showGroupOrganizer(groupID: group.id) }
-                    Divider()
-                    Button("Show All Windows") { app.groupManager.showAllWindows(group.id) }
-                    Button("Ungroup All", role: .destructive) { app.groupManager.ungroupAll(group.id) }
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "plus")
-                        Text("Add")
-                    }
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Color(nsColor: .labelColor))
-                    .frame(height: 24)
-                    .padding(.horizontal, 6)
-                    .background(
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .fill(Color(nsColor: .controlBackgroundColor).opacity(0.75))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .stroke(Color(nsColor: .separatorColor).opacity(0.7), lineWidth: 1)
-                    )
-                    .fixedSize()
-                        .contentShape(Rectangle())
-                }
-                .menuStyle(.borderlessButton)
-                .fixedSize()
-                .help("Add Cursor windows or manage this stack")
-
-                Button {
-                    app.showSettings()
-                } label: {
-                    Label("Settings", systemImage: "gearshape")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Color(nsColor: .labelColor))
-                        .frame(height: 24)
-                        .padding(.horizontal, 7)
-                        .background(
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .fill(Color(nsColor: .controlBackgroundColor).opacity(0.75))
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .stroke(Color(nsColor: .separatorColor).opacity(0.7), lineWidth: 1)
-                        )
-                }
-                .buttonStyle(.plain)
-                .help("Open CursorStack Settings")
+            addMenu
+            settingsButton
                 .padding(.trailing, 8)
+        }
+    }
+
+    private var verticalStrip: some View {
+        VStack(spacing: 10) {
+            TrafficLights(
+                onClose: { NSApp.terminate(nil) },
+                onMiniaturize: { app.groupManager.minimizeGroup(group.id) },
+                onZoom: { app.groupManager.toggleMaximize(group.id) }
+            )
+            .padding(.top, 10)
+
+            BrandMark(size: 28, style: .adaptive)
+                .help("CursorStack")
+
+            StackWindowDragHandle()
+                .frame(width: 24, height: 14)
+
+            Rectangle()
+                .fill(Color(nsColor: .separatorColor))
+                .frame(width: 18, height: 1)
+
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 2) {
+                    tabItems(fillsWidth: true)
+                }
+                .padding(.horizontal, 8)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(TitlebarBackground())
-            .overlay(alignment: .bottom) {
-                Rectangle()
-                    .fill(Color(nsColor: .separatorColor))
-                    .frame(height: 1)
-            }
-            .onTapGesture(count: 2) {
-                app.groupManager.toggleMaximize(group.id)
+
+            addMenu
+            settingsButton
+                .padding(.bottom, 8)
+        }
+        .padding(.horizontal, 6)
+    }
+
+    @ViewBuilder
+    private func tabItems(fillsWidth: Bool) -> some View {
+        ForEach(Array(group.windows.enumerated()), id: \.element.id) { index, window in
+            TabItemView(
+                window: window,
+                selected: window.id == group.activeWindowID,
+                showDot: app.settingsStore.settings.showTabIndicator && window.attentionState.showsTabDot,
+                showWorking: app.settingsStore.settings.showTabIndicator && window.attentionState.showsWorkingIndicator,
+                showFullTitle: app.settingsStore.settings.showFullTitle,
+                showProjectName: app.settingsStore.settings.showProjectName,
+                fillsWidth: fillsWidth
+            )
+            .onTapGesture {
+                app.activate(windowID: window.id, in: group.id)
             }
             .contextMenu {
-                Text(group.name).font(.headline)
-                Button("Add Cursor Window…") { app.showWindowPicker(addingTo: group.id) }
-                Button("Rename Group…") { app.promptRenameGroup(group) }
+                Button("Switch To") { app.activate(windowID: window.id, in: group.id) }
+                Button(fillsWidth ? "Move Up" : "Move Left") {
+                    app.groupManager.reorder(in: group.id, moving: window.id, to: max(0, index - 1))
+                }
+                Button(fillsWidth ? "Move Down" : "Move Right") {
+                    app.groupManager.reorder(in: group.id, moving: window.id, to: index + 1)
+                }
                 Button("Manage Tab Order…") { app.showGroupOrganizer(groupID: group.id) }
-                Button("Maximize Group") { app.groupManager.maximize(group.id) }
-                Button(group.isPaused ? "Resume Synchronization" : "Pause Synchronization") {
-                    app.groupManager.pause(group.id, paused: !group.isPaused)
-                }
-                if !group.unresolved.isEmpty {
-                    Divider()
-                    Button("Remove Closed Tabs", role: .destructive) {
-                        app.forgetAllUnresolved(in: group.id)
-                    }
-                }
                 Divider()
-                Button("Show All Windows") { app.groupManager.showAllWindows(group.id) }
-                Button("Ungroup All", role: .destructive) { app.groupManager.ungroupAll(group.id) }
+                Button("Rename Tab…") { app.promptRenameTab(window) }
+                Divider()
+                Button("Detach From Group") { app.groupManager.detach(windowID: window.id, from: group.id) }
+                Button("Close Cursor Window") { app.groupManager.closeCursorWindow(window.id) }
             }
+            .onDrag {
+                app.draggedTabWindowID = window.id
+                return NSItemProvider(object: window.id.uuidString as NSString)
+            }
+            .onDrop(
+                of: [.text],
+                delegate: WindowOrderDropDelegate(
+                    targetWindowID: window.id,
+                    groupID: group.id,
+                    app: app,
+                    draggedWindowID: $app.draggedTabWindowID,
+                    targetedWindowID: $app.targetedTabWindowID
+                )
+            )
+            .overlay(alignment: fillsWidth ? .top : .leading) {
+                if app.targetedTabWindowID == window.id {
+                    Capsule()
+                        .fill(Color.accentColor)
+                        .frame(width: fillsWidth ? nil : 3, height: fillsWidth ? 3 : nil)
+                        .padding(fillsWidth ? .horizontal : .vertical, 3)
+                        .offset(x: fillsWidth ? 0 : -2, y: fillsWidth ? -2 : 0)
+                }
+            }
+        }
+        ForEach(group.unresolved) { unresolved in
+            UnresolvedTabItemView(
+                unresolved: unresolved,
+                canRemoveAll: group.unresolved.count > 1,
+                fillsWidth: fillsWidth,
+                onReconnect: { app.reconnectUnresolved(unresolved, in: group.id) },
+                onRemove: { app.forgetUnresolved(unresolved, in: group.id) },
+                onRemoveAll: { app.forgetAllUnresolved(in: group.id) }
+            )
+        }
+    }
+
+    private var addMenu: some View {
+        Menu {
+            Button("Add Existing Cursor Window…") {
+                app.showWindowPicker(addingTo: group.id)
+            }
+            Button("Open New Cursor Window…") {
+                app.openNewCursorWindow()
+            }
+            if !group.unresolved.isEmpty {
+                Button("Remove Closed Tabs", role: .destructive) {
+                    app.forgetAllUnresolved(in: group.id)
+                }
+            }
+            Divider()
+            Button("Maximize Group") { app.groupManager.maximize(group.id) }
+            Button(group.isPaused ? "Resume Synchronization" : "Pause Synchronization") {
+                app.groupManager.pause(group.id, paused: !group.isPaused)
+            }
+            Button("Rename Group…") { app.promptRenameGroup(group) }
+            Button("Manage Tab Order…") { app.showGroupOrganizer(groupID: group.id) }
+            Divider()
+            Button("Show All Windows") { app.groupManager.showAllWindows(group.id) }
+            Button("Ungroup All", role: .destructive) { app.groupManager.ungroupAll(group.id) }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "plus")
+                Text("Add")
+            }
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(Color(nsColor: .labelColor))
+            .frame(maxWidth: position.isVertical ? .infinity : nil)
+            .frame(height: 24)
+            .padding(.horizontal, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(Color(nsColor: .controlBackgroundColor).opacity(0.75))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .stroke(Color(nsColor: .separatorColor).opacity(0.7), lineWidth: 1)
+            )
+            .fixedSize(horizontal: !position.isVertical, vertical: true)
+            .contentShape(Rectangle())
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize(horizontal: !position.isVertical, vertical: true)
+        .help("Add Cursor windows or manage this stack")
+    }
+
+    private var settingsButton: some View {
+        Button {
+            app.showSettings()
+        } label: {
+            Label("Settings", systemImage: "gearshape")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Color(nsColor: .labelColor))
+                .frame(maxWidth: position.isVertical ? .infinity : nil)
+                .frame(height: 24)
+                .padding(.horizontal, 7)
+                .background(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(Color(nsColor: .controlBackgroundColor).opacity(0.75))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .stroke(Color(nsColor: .separatorColor).opacity(0.7), lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+        .help("Open CursorStack Settings")
+    }
+
+    @ViewBuilder
+    private var stripContextMenu: some View {
+        Text(group.name).font(.headline)
+        Button("Add Cursor Window…") { app.showWindowPicker(addingTo: group.id) }
+        Button("Rename Group…") { app.promptRenameGroup(group) }
+        Button("Manage Tab Order…") { app.showGroupOrganizer(groupID: group.id) }
+        Button("Maximize Group") { app.groupManager.maximize(group.id) }
+        Button(group.isPaused ? "Resume Synchronization" : "Pause Synchronization") {
+            app.groupManager.pause(group.id, paused: !group.isPaused)
+        }
+        if !group.unresolved.isEmpty {
+            Divider()
+            Button("Remove Closed Tabs", role: .destructive) {
+                app.forgetAllUnresolved(in: group.id)
+            }
+        }
+        Divider()
+        Button("Show All Windows") { app.groupManager.showAllWindows(group.id) }
+        Button("Ungroup All", role: .destructive) { app.groupManager.ungroupAll(group.id) }
     }
 }
 
 private struct UnresolvedTabItemView: View {
     let unresolved: PersistedWindowReference
     let canRemoveAll: Bool
+    var fillsWidth: Bool = false
     let onReconnect: () -> Void
     let onRemove: () -> Void
     let onRemoveAll: () -> Void
@@ -221,6 +306,7 @@ private struct UnresolvedTabItemView: View {
             .help("Remove closed tab")
             .padding(.trailing, 6)
         }
+        .frame(maxWidth: fillsWidth ? .infinity : nil, alignment: .leading)
         .overlay(
             RoundedRectangle(cornerRadius: 6)
                 .strokeBorder(Color(nsColor: .labelColor).opacity(0.25), style: StrokeStyle(lineWidth: 1, dash: [4]))
@@ -242,6 +328,7 @@ struct TabItemView: View {
     var showWorking: Bool
     var showFullTitle: Bool
     var showProjectName: Bool
+    var fillsWidth: Bool = false
 
     private var label: String {
         if showFullTitle { return window.title }
@@ -256,6 +343,9 @@ struct TabItemView: View {
                 .font(.system(size: 13, weight: selected ? .semibold : .medium))
                 .foregroundStyle(Color(nsColor: .labelColor).opacity(selected ? 1 : 0.78))
                 .lineLimit(1)
+            if fillsWidth {
+                Spacer(minLength: 0)
+            }
             if showDot {
                 Circle()
                     .fill(window.attentionState == .error ? Color.red : Color.accentColor)
@@ -268,6 +358,7 @@ struct TabItemView: View {
         }
         .padding(.horizontal, 11)
         .padding(.vertical, 4)
+        .frame(maxWidth: fillsWidth ? .infinity : nil, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .fill(selected ? Color(nsColor: .controlAccentColor).opacity(0.38) : Color.clear)

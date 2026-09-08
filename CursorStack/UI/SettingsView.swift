@@ -133,6 +133,30 @@ struct SettingsView: View {
         )
     }
 
+    private var tabBarPosition: Binding<TabBarPosition> {
+        Binding(
+            get: { settingsStore.settings.effectiveTabBarPosition },
+            set: { position in
+                var updated = settingsStore.settings
+                updated.tabBarPosition = position
+                settingsStore.settings = updated
+                app.applySettingsSideEffects()
+            }
+        )
+    }
+
+    private var tabWidth: Binding<CGFloat> {
+        Binding(
+            get: { settingsStore.settings.effectiveTabWidth },
+            set: { width in
+                var updated = settingsStore.settings
+                updated.tabWidth = width
+                settingsStore.settings = updated
+                app.applySettingsSideEffects()
+            }
+        )
+    }
+
     private var appAppearance: Binding<AppAppearance> {
         Binding(
             get: { settingsStore.settings.effectiveAppAppearance },
@@ -261,18 +285,43 @@ struct SettingsView: View {
                 Divider()
 
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Tab bar height")
+                    Text("Tab bar position")
                         .font(.system(size: 13, weight: .semibold))
-                    Picker("Tab bar height", selection: settings.tabHeight) {
-                        Text("Compact").tag(CGFloat(35))
-                        Text("Regular").tag(CGFloat(36))
-                        Text("Roomy").tag(CGFloat(40))
+                    Picker("Tab bar position", selection: tabBarPosition) {
+                        ForEach(TabBarPosition.allCases) { position in
+                            Text(position.title).tag(position)
+                        }
                     }
                     .labelsHidden()
                     .pickerStyle(.segmented)
-                    Text("The bar sits above Cursor in its own row. Compact leaves the most room.")
+                    Text(tabBarPosition.wrappedValue.caption)
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(tabBarPosition.wrappedValue.isVertical ? "Tab bar width" : "Tab bar height")
+                        .font(.system(size: 13, weight: .semibold))
+                    if tabBarPosition.wrappedValue.isVertical {
+                        Picker("Tab bar width", selection: tabWidth) {
+                            Text("Compact").tag(CGFloat(120))
+                            Text("Regular").tag(CGFloat(148))
+                            Text("Roomy").tag(CGFloat(180))
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.segmented)
+                    } else {
+                        Picker("Tab bar height", selection: settings.tabHeight) {
+                            Text("Compact").tag(CGFloat(35))
+                            Text("Regular").tag(CGFloat(36))
+                            Text("Roomy").tag(CGFloat(40))
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.segmented)
+                    }
                 }
             }
 

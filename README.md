@@ -4,7 +4,7 @@
   <img src="images/cursorstack-logo-full-color.png" alt="CursorStack" width="520">
 </p>
 
-Native macOS utility that groups Cursor windows into a logical tabbed stack. CursorStack does not embed or modify Cursor; it aligns real Cursor windows beneath a dedicated tab strip.
+Native macOS utility that groups Cursor windows into a logical tabbed stack. CursorStack does not embed or modify Cursor; it aligns real Cursor windows with a dedicated tab strip.
 
 ## Download
 
@@ -80,7 +80,7 @@ The script signs, notarizes, staples, verifies, and writes the update ZIP and `a
 2. Create a stack from the menu bar icon or window picker.
 3. Click tabs or use global shortcuts to switch projects.
 
-The tab strip sits above Cursor’s native title bar, so Cursor’s search field remains usable. Clicking another app hides it like a normal window. Closing CursorStack leaves Cursor windows open.
+The tab strip sits above Cursor’s native title bar by default, so Cursor’s search field remains usable. Settings can move it to the bottom, left, or right. Clicking another app hides it like a normal window. Closing CursorStack leaves Cursor windows open.
 
 **Settings** is under CursorStack → Settings… (`⌘,`) or the menu bar icon → Settings…. It includes installation, launch at login, appearance, tab ordering, shortcuts, attention, and diagnostics.
 

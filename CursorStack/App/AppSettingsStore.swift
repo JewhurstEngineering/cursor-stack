@@ -19,6 +19,9 @@ final class AppSettingsStore: ObservableObject {
             if settings.tabHeight > 40 {
                 settings.tabHeight = 36
             }
+            if let width = settings.tabWidth, width > 180 {
+                settings.tabWidth = 148
+            }
         } else {
             settings = AppSettings()
         }
