@@ -12,3 +12,6 @@ CursorStack-PRD.md
 *.p12
 AuthKey_*.p8
 sparkle_private_key*
+
+# Local design mockups, not published
+docs/mockups/
