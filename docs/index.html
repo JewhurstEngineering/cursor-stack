@@ -49,97 +49,6 @@
       h1, h2, h3 {
         text-wrap: balance;
       }
-      .mock {
-        position: relative;
-        min-width: 0;
-        max-width: 100%;
-        padding: 1.75rem 0 0 1.75rem;
-      }
-      .pane {
-        border: 1px solid rgba(1, 187, 216, 0.45);
-        border-radius: 14px;
-        background: #1b2336;
-        box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
-      }
-      .pane-back {
-        position: absolute;
-        inset: 0 1.75rem 1.75rem 0;
-        background: #141c2e;
-        border-color: rgba(1, 187, 216, 0.22);
-      }
-      .pane-mid {
-        position: absolute;
-        inset: 0.85rem 0.9rem 0.9rem 0.85rem;
-        background: #172033;
-        border-color: rgba(1, 187, 216, 0.32);
-      }
-      .pane-front {
-        position: relative;
-        min-width: 0;
-        max-width: 100%;
-      }
-      .tabs {
-        display: flex;
-        gap: 0.25rem;
-        min-width: 0;
-        padding: 0.5rem 0.5rem 0;
-        overflow: hidden;
-      }
-      .tab {
-        min-width: 0;
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
-        padding: 0.45rem 0.7rem;
-        border-radius: 8px 8px 0 0;
-        color: #94a3b8;
-        font-family: "JetBrains Mono", ui-monospace, monospace;
-        font-size: 0.75rem;
-        line-height: 1.2;
-        white-space: nowrap;
-      }
-      .tab strong {
-        font-weight: 500;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .tab.is-active {
-        background: #0f172a;
-        color: #f8fafc;
-      }
-      .dot {
-        width: 0.45rem;
-        height: 0.45rem;
-        border-radius: 999px;
-        background: #f59e0b;
-        flex: none;
-      }
-      .chrome {
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
-        padding: 0.65rem 0.85rem;
-        background: #0f172a;
-        border-top: 1px solid rgba(71, 85, 105, 0.65);
-      }
-      .light {
-        width: 0.65rem;
-        height: 0.65rem;
-        border-radius: 999px;
-      }
-      .editor {
-        padding: 1rem 0.9rem 1.15rem;
-        display: grid;
-        gap: 0.55rem;
-      }
-      .line {
-        height: 0.45rem;
-        border-radius: 999px;
-        background: #272f42;
-      }
-      .line.short { width: 42%; }
-      .line.mid { width: 68%; }
-      .line.accent { width: 28%; background: rgba(1, 187, 216, 0.85); }
       @media (prefers-reduced-motion: no-preference) {
         html.motion .reveal {
           animation: rise 0.35s ease-out both;
@@ -161,8 +70,8 @@
     <a class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:bg-background focus:px-4 focus:py-2" href="#main">Skip to content</a>
     <header class="sticky top-0 z-40 border-b border-border/70 bg-background/90 backdrop-blur">
       <div class="mx-auto flex w-full min-w-0 max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 sm:px-6 lg:px-8">
-        <a href="#main" class="inline-flex shrink-0 cursor-pointer items-center">
-          <img src="images/wordmark.png" width="720" height="240" alt="CursorStack" class="h-7 w-auto">
+        <a href="#main" class="inline-flex min-h-11 shrink-0 cursor-pointer items-center py-1">
+          <img src="images/logo-nav.png" width="909" height="364" alt="CursorStack" class="h-11 w-auto sm:h-14">
         </a>
         <nav aria-label="On this page" class="flex min-w-0 basis-full flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground sm:basis-auto">
           <a class="cursor-pointer hover:text-foreground" href="#product">Product</a>
@@ -170,54 +79,37 @@
           <a class="cursor-pointer hover:text-foreground" href="#how">How it works</a>
           <a class="cursor-pointer hover:text-foreground" href="#shortcuts">Shortcuts</a>
         </nav>
-        <a class="ml-auto inline-flex min-h-11 cursor-pointer items-center rounded-lg bg-accent px-4 text-sm font-semibold text-on-accent transition-colors duration-200 hover:bg-white" href="https://github.com/JewhurstEngineering/cursor-stack/releases/latest">Download</a>
+        <a class="ml-auto inline-flex min-h-11 cursor-pointer items-center rounded-lg bg-accent px-4 text-sm font-semibold text-on-accent transition-colors duration-200 hover:bg-white" href="https://github.com/JewhurstEngineering/cursor-stack/releases/latest/download/CursorStack-1.0.9.zip">Download</a>
       </div>
     </header>
 
     <main id="main">
-      <section class="mx-auto grid w-full min-w-0 max-w-6xl items-center gap-12 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-2 lg:px-8 lg:py-28">
+      <section class="mx-auto w-full min-w-0 max-w-6xl px-4 pb-16 pt-12 sm:px-6 sm:pb-24 lg:px-8">
         <div class="reveal min-w-0">
-          <p class="font-mono text-sm text-accent">macOS 14 or newer · Apple silicon</p>
-          <h1 class="mt-4 font-mono text-4xl font-medium leading-tight tracking-tight sm:text-5xl">Your Cursor projects, one tab away.</h1>
-          <p class="mt-5 max-w-xl text-lg text-muted-foreground">CursorStack lines up the Cursor windows you already have and puts one tab strip on them. Same frame. One click to switch. It does not embed Cursor, and it does not read your code.</p>
-          <div class="mt-8 flex flex-wrap items-center gap-3">
-            <a class="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg bg-accent px-5 font-semibold text-on-accent transition-colors duration-200 hover:bg-white" href="https://github.com/JewhurstEngineering/cursor-stack/releases/latest">
+          <img src="images/logo-nav.png" width="909" height="364" alt="" class="w-full max-w-[220px] sm:max-w-xs">
+          <p class="mt-6 font-mono text-sm text-accent">macOS 14 or newer · Apple silicon</p>
+          <h1 class="mt-3 max-w-3xl font-mono text-4xl font-medium leading-tight tracking-tight sm:text-5xl">Your Cursor projects, one tab away.</h1>
+          <p class="mt-4 max-w-2xl text-lg text-muted-foreground">CursorStack lines up the Cursor windows you already have and puts one tab strip on them. Same frame, one click to switch.</p>
+          <div class="mt-7 flex flex-wrap items-center gap-3">
+            <a class="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg bg-accent px-5 font-semibold text-on-accent transition-colors duration-200 hover:bg-white" href="https://github.com/JewhurstEngineering/cursor-stack/releases/latest/download/CursorStack-1.0.9.zip">
               <svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
               Download for Mac
             </a>
             <a class="inline-flex min-h-11 cursor-pointer items-center rounded-lg border border-border px-5 text-foreground transition-colors duration-200 hover:border-foreground" href="https://github.com/JewhurstEngineering/cursor-stack">Source</a>
+            <span class="text-sm text-muted-foreground">Free · Nothing uploaded · No account</span>
           </div>
-          <ul class="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
-            <li>Nothing uploaded</li>
-            <li>No account</li>
-            <li>Signed and notarized</li>
-          </ul>
         </div>
 
-        <div class="mock reveal min-w-0" aria-hidden="true">
-          <div class="pane pane-back"></div>
-          <div class="pane pane-mid"></div>
-          <div class="pane pane-front">
-            <div class="tabs">
-              <span class="tab is-active"><strong>frontend</strong></span>
-              <span class="tab"><strong>api</strong></span>
-              <span class="tab"><strong>docs</strong><span class="dot"></span></span>
-              <span class="tab"><strong>notes</strong></span>
-            </div>
-            <div class="chrome">
-              <span class="light" style="background:#ff5f57"></span>
-              <span class="light" style="background:#febc2e"></span>
-              <span class="light" style="background:#28c840"></span>
-            </div>
-            <div class="editor">
-              <span class="line accent"></span>
-              <span class="line mid"></span>
-              <span class="line"></span>
-              <span class="line short"></span>
-              <span class="line mid"></span>
-            </div>
+        <figure class="reveal mt-10 min-w-0">
+          <picture>
+            <source media="(max-width: 639px)" srcset="images/strip-mobile.jpg">
+            <img src="images/strip-zoom.jpg" width="1290" height="66" alt="The CursorStack tab strip on a Cursor window, with project tabs and the active project highlighted" class="w-full rounded-t-xl border border-b-0 border-accent/50">
+          </picture>
+          <div class="overflow-hidden rounded-b-xl border border-border/80">
+            <img src="images/tab-strip.jpg" width="1024" height="349" alt="The same strip on a real Cursor window, with the Add menu open" class="-mt-[2.15%] w-full">
           </div>
-        </div>
+          <figcaption class="mt-4 max-w-3xl text-sm text-muted-foreground">Many projects, one strip, sitting on your real Cursor window. Add a window or manage the stack from the menu on the right.</figcaption>
+        </figure>
       </section>
 
       <section id="product" class="border-t border-border/70">
@@ -228,7 +120,7 @@
             <li class="rounded-xl border border-border/80 bg-card p-6">
               <svg aria-hidden="true" viewBox="0 0 24 24" class="h-6 w-6 text-accent" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 9h18"/></svg>
               <h3 class="mt-4 font-mono text-lg">The windows stay Cursor’s</h3>
-              <p class="mt-2 text-muted-foreground">The windows stay Cursor’s. The strip sits above the title bar, so Cursor’s own search field still works.</p>
+              <p class="mt-2 text-muted-foreground">Nothing is embedded or re-parented. The strip sits above the title bar, so Cursor’s own search field still works.</p>
             </li>
             <li class="rounded-xl border border-border/80 bg-card p-6">
               <svg aria-hidden="true" viewBox="0 0 24 24" class="h-6 w-6 text-accent" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7h11"/><path d="M8 12h11"/><path d="M8 17h11"/><path d="M4 7h.01"/><path d="M4 12h.01"/><path d="M4 17h.01"/></svg>
@@ -238,7 +130,7 @@
             <li class="rounded-xl border border-border/80 bg-card p-6">
               <svg aria-hidden="true" viewBox="0 0 24 24" class="h-6 w-6 text-accent" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 7 3 9H3c0-2 3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
               <h3 class="mt-4 font-mono text-lg">See which project needs you</h3>
-              <p class="mt-2 text-muted-foreground">An attention mark shows up on a tab when that window looks busy. The orange dot in the picture above is that mark. Notifications are optional.</p>
+              <p class="mt-2 text-muted-foreground">An attention mark shows up on a tab when that window looks busy. Notifications are optional.</p>
             </li>
           </ul>
         </div>
@@ -246,16 +138,22 @@
 
       <section id="look" class="border-t border-border/70">
         <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-          <h2 class="font-mono text-3xl font-medium tracking-tight">What you actually get</h2>
-          <div class="mt-12 grid gap-8 lg:grid-cols-2">
-            <figure>
-              <img src="images/settings.jpg" width="1600" height="1155" alt="CursorStack General settings, with menu bar, Dock, and install options" class="w-full rounded-xl border border-border/80" loading="lazy">
-              <figcaption class="mt-3 text-sm text-muted-foreground">Settings covers install, launch at login, where the strip sits, and whether new Cursor windows join the stack.</figcaption>
+          <h2 class="font-mono text-3xl font-medium tracking-tight">What it looks like</h2>
+          <div class="mt-12 grid items-start gap-8 lg:grid-cols-5">
+            <figure class="min-w-0 lg:col-span-3">
+              <img src="images/settings.jpg" width="877" height="745" alt="CursorStack Settings in dark mode, showing the app is installed and Accessibility is connected" class="w-full rounded-xl border border-border/80">
+              <figcaption class="mt-3 text-sm text-muted-foreground">Settings is where you install it, check for a signed update, and choose whether it shows in the menu bar and the Dock.</figcaption>
             </figure>
-            <figure>
-              <img src="images/onboarding.jpg" width="1400" height="910" alt="CursorStack Accessibility onboarding, listing what it can do and what it never does" class="w-full rounded-xl border border-border/80" loading="lazy">
-              <figcaption class="mt-3 text-sm text-muted-foreground">First launch asks for Accessibility. That permission is how it moves windows it does not own.</figcaption>
-            </figure>
+            <div class="grid min-w-0 gap-8 lg:col-span-2">
+              <figure>
+                <img src="images/tab-menu.jpg" width="689" height="275" alt="Right-click menu on a CursorStack tab, with Switch To, Move Left, and Detach From Group" class="w-full rounded-xl border border-border/80">
+                <figcaption class="mt-3 text-sm text-muted-foreground">Right-click a tab to reorder it, rename it, or pull that window out of the stack.</figcaption>
+              </figure>
+              <figure>
+                <img src="images/group-menu.jpg" width="415" height="302" alt="CursorStack Group menu listing the current stack and its projects" class="w-full rounded-xl border border-border/80">
+                <figcaption class="mt-3 text-sm text-muted-foreground">The Group menu is the stack you’re in, and the projects you can switch to.</figcaption>
+              </figure>
+            </div>
           </div>
         </div>
       </section>
@@ -330,8 +228,8 @@
             </li>
           </ul>
           <div class="mt-12 flex flex-wrap items-center gap-4">
-            <a class="inline-flex min-h-11 cursor-pointer items-center rounded-lg bg-accent px-5 font-semibold text-on-accent transition-colors duration-200 hover:bg-white" href="https://github.com/JewhurstEngineering/cursor-stack/releases/latest">Download for Mac</a>
-            <p class="text-sm text-muted-foreground">Latest signed build, from GitHub Releases.</p>
+            <a class="inline-flex min-h-11 cursor-pointer items-center rounded-lg bg-accent px-5 font-semibold text-on-accent transition-colors duration-200 hover:bg-white" href="https://github.com/JewhurstEngineering/cursor-stack/releases/latest/download/CursorStack-1.0.9.zip">Download for Mac</a>
+            <p class="text-sm text-muted-foreground">Downloads CursorStack-1.0.9.zip.</p>
           </div>
         </div>
       </section>
@@ -339,6 +237,7 @@
 
     <footer class="border-t border-border/70">
       <div class="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+        <img src="images/logo-full-color.png" width="960" height="540" alt="" class="mb-6 w-44">
         <p class="max-w-3xl text-sm text-muted-foreground">CursorStack is an independent open-source project. It is not affiliated with, endorsed by, or sponsored by Anysphere or Cursor. Cursor is a trademark of its respective owner.</p>
         <p class="mt-4 text-sm"><a class="cursor-pointer text-accent hover:text-foreground" href="https://github.com/JewhurstEngineering/cursor-stack">github.com/JewhurstEngineering/cursor-stack</a></p>
       </div>

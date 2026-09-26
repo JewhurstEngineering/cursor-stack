@@ -21,6 +21,6 @@ App Store Style Landing, with a Minimal and Direct hero. This is a download page
 
 Primary action is **Download for Mac**, linking to the latest GitHub Release. Repeat it in the header and after the shortcuts. Do not send people to a pinned `1.0.9` zip.
 
-## Hero mock
+## Hero images
 
-The mock is decorative (`aria-hidden="true"`). It shows the actual product idea: a tab strip above a Cursor window, with other windows stacked behind it. One inactive tab can show an attention dot, and the features section explains that dot in text.
+Use the full-color logo and the real tab-strip, settings, tab menu, and group menu screenshots. Download buttons point at the zip, not the release page.
