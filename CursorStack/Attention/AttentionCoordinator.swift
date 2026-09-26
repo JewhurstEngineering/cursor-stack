@@ -132,6 +132,7 @@ final class AttentionCoordinator: ObservableObject {
     private let visualProvider = VisualAttentionProvider()
     private let composerReader = ComposerActivityReader()
     private var composerReadInFlight = false
+    private var finishedChats = Set<UUID>()
     private var tracking: [UUID: AttentionTrackingState] = [:]
     private var monitoredWindows: [UUID: ManagedCursorWindow] = [:]
 
@@ -208,11 +209,22 @@ final class AttentionCoordinator: ObservableObject {
                 workspaces: snapshot.workspaces,
                 headers: snapshot.headers
             ) {
+                let previous = states[window.id] ?? .unknown
+                let shown = FinishedChatSignal.resolve(
+                    live: state,
+                    previous: previous,
+                    holding: finishedChats.contains(window.id)
+                )
+                if shown.holding {
+                    finishedChats.insert(window.id)
+                } else {
+                    finishedChats.remove(window.id)
+                }
                 if CSLog.debugEnabled {
-                    CSLog.attention.debug("composer \(window.displayName, privacy: .public): \(state.rawValue, privacy: .public)")
+                    CSLog.attention.debug("composer \(window.displayName, privacy: .public): \(shown.state.rawValue, privacy: .public)")
                 }
                 handle(windowID: window.id, observation: AttentionObservation(
-                    state: state,
+                    state: shown.state,
                     confidence: 0.9,
                     source: .composer
                 ))
@@ -226,8 +238,13 @@ final class AttentionCoordinator: ObservableObject {
     }
 
     func markViewedIfAppropriate(_ window: ManagedCursorWindow) {
-        // The tab mark follows the live chat control, including after this window is selected.
-        _ = window
+        guard finishedChats.contains(window.id), states[window.id] == .completed else { return }
+        finishedChats.remove(window.id)
+        handle(windowID: window.id, observation: AttentionObservation(
+            state: .idle,
+            confidence: 0.9,
+            source: .composer
+        ))
     }
 
     private func handle(windowID: UUID, observation: AttentionObservation) {

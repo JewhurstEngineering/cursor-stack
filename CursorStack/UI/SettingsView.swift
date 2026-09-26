@@ -508,7 +508,7 @@ struct SettingsView: View {
                 Divider()
                 SettingsToggleRow(
                     title: "Show a dot on the tab",
-                    detail: "A mark while a chat is running, and a stronger one when it is waiting on you.",
+                    detail: "A ring while a chat is running. A dot when that chat finishes, or when it is waiting on you.",
                     isOn: settings.showTabIndicator
                 )
                 .disabled(!settingsStore.settings.detectAttention)
@@ -518,7 +518,7 @@ struct SettingsView: View {
             SettingsCard(title: "Notifications", symbol: "bell.badge") {
                 SettingsToggleRow(
                     title: "Send a macOS notification",
-                    detail: "Notifies you when a chat in a background window is waiting on you.",
+                    detail: "Notifies you when a chat in another tab finishes, or is waiting on you.",
                     isOn: settings.sendNotifications
                 )
                 Divider()

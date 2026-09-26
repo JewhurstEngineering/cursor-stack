@@ -504,9 +504,12 @@ final class ApplicationController: NSObject, ObservableObject {
 
     private func notifyIfNeeded(window: ManagedCursorWindow) {
         guard settingsStore.settings.sendNotifications else { return }
-        if !settingsStore.settings.notifyWhenFrontmost, NSApp.isActive { return }
         guard let group = groupManager.group(containing: window.id) else { return }
-        if group.activeWindowID == window.id, !settingsStore.settings.notifyForSelectedTab { return }
+        let selected = group.activeWindowID == window.id
+        if selected {
+            guard settingsStore.settings.notifyForSelectedTab else { return }
+            if NSApp.isActive, !settingsStore.settings.notifyWhenFrontmost { return }
+        }
         notifications.notify(window: window, groupID: group.id, sound: settingsStore.settings.notificationSound)
     }
 

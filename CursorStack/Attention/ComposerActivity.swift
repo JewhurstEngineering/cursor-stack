@@ -23,8 +23,6 @@ struct ComposerActivitySnapshot: Equatable, Sendable {
 }
 
 enum ComposerActivity {
-    /// A checkpoint this fresh means the chat is producing output right now.
-    static let heartbeatWindow: TimeInterval = 25
     /// An open run can sit on a tool call without a new checkpoint for a few minutes.
     static let runningWindow: TimeInterval = 240
     /// A question can wait without new tokens. Older than this is a stuck flag.
@@ -58,11 +56,9 @@ enum ComposerActivity {
     }
 
     private static func isRunning(_ header: ComposerChatHeader, now: Date) -> Bool {
-        guard let checkpoint = header.checkpoint else { return false }
+        guard header.hasUnfinishedRun, let checkpoint = header.checkpoint else { return false }
         let age = now.timeIntervalSince(checkpoint)
-        guard age > -60 else { return false }
-        if age < heartbeatWindow { return true }
-        return header.hasUnfinishedRun && age < runningWindow
+        return age > -60 && age < runningWindow
     }
 
     private static func touched(_ header: ComposerChatHeader, within window: TimeInterval, now: Date) -> Bool {
@@ -70,6 +66,25 @@ enum ComposerActivity {
         guard let latest else { return false }
         let age = now.timeIntervalSince(latest)
         return age > -60 && age < window
+    }
+}
+
+enum FinishedChatSignal {
+    /// A run that was spinning and then stopped is done. Hold that until the tab is opened.
+    static func resolve(live: AttentionState, previous: AttentionState, holding: Bool) -> (state: AttentionState, holding: Bool) {
+        switch live {
+        case .working:
+            return (.working, false)
+        case .attention, .error:
+            return (live, false)
+        case .idle, .completed:
+            if previous == .working || holding {
+                return (.completed, true)
+            }
+            return (.idle, false)
+        case .unknown:
+            return (previous, holding)
+        }
     }
 }
 

@@ -10,7 +10,7 @@ enum AttentionState: String, Codable, Equatable, CaseIterable {
     case error
 
     var showsTabDot: Bool {
-        self == .attention || self == .error
+        self == .attention || self == .completed || self == .error
     }
 
     var showsWorkingIndicator: Bool {
@@ -52,8 +52,8 @@ struct AttentionTrackingState: Equatable {
         let previous = currentState
         currentState = newState
 
-        guard newState == .attention || newState == .error else {
-            if newState == .idle || newState == .unknown {
+        guard newState == .attention || newState == .completed || newState == .error else {
+            if newState == .idle || newState == .unknown || newState == .working {
                 lastNotifiedState = nil
             }
             return false

@@ -376,9 +376,11 @@ struct TabItemView: View {
             return "\(window.title) — chat running"
         case .attention:
             return "\(window.title) — waiting on you"
+        case .completed:
+            return "\(window.title) — chat is done"
         case .error:
             return "\(window.title) — needs attention"
-        case .unknown, .idle, .completed:
+        case .unknown, .idle:
             return window.title
         }
     }

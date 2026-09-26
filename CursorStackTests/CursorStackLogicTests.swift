@@ -566,11 +566,11 @@ final class ComposerActivityTests: XCTestCase {
         XCTAssertEqual(activity(headers), .working)
     }
 
-    func testHeartbeatWithoutAnOpenRunIsStillWorking() {
+    func testFreshCheckpointAfterTheRunEndsIsIdle() {
         let headers = [
             header(workspace: "stack", unfinished: false, checkpoint: now.addingTimeInterval(-8))
         ]
-        XCTAssertEqual(activity(headers), .working)
+        XCTAssertEqual(activity(headers), .idle)
     }
 
     func testDaysOldUnfinishedRunIsIdle() {
@@ -615,6 +615,26 @@ final class ComposerActivityTests: XCTestCase {
             now: now
         )
         XCTAssertEqual(state, .working)
+    }
+
+    func testFinishedRunBecomesADotUntilTheTabIsOpened() {
+        let ended = FinishedChatSignal.resolve(live: .idle, previous: .working, holding: false)
+        XCTAssertEqual(ended.state, .completed)
+        XCTAssertTrue(ended.holding)
+
+        let still = FinishedChatSignal.resolve(live: .idle, previous: .completed, holding: true)
+        XCTAssertEqual(still.state, .completed)
+        XCTAssertTrue(still.holding)
+
+        let unrelated = FinishedChatSignal.resolve(live: .idle, previous: .unknown, holding: false)
+        XCTAssertEqual(unrelated.state, .idle)
+        XCTAssertFalse(unrelated.holding)
+    }
+
+    func testNewRunClearsTheFinishedDot() {
+        let running = FinishedChatSignal.resolve(live: .working, previous: .completed, holding: true)
+        XCTAssertEqual(running.state, .working)
+        XCTAssertFalse(running.holding)
     }
 
     func testUnknownProjectDoesNotInventAState() {
