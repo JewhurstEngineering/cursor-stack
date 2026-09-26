@@ -1,249 +1,328 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>CursorStack — Your Cursor projects, one tab away</title>
-    <meta name="description" content="CursorStack groups real Cursor windows under one tab strip on macOS. Nothing is uploaded. No account.">
-    <link rel="canonical" href="https://cursorstack.app/">
-    <meta name="theme-color" content="#0F172A">
-    <link rel="icon" href="favicon.png" type="image/png">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <style type="text/tailwindcss">
-      @theme {
-        --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-        --font-mono: "JetBrains Mono", ui-monospace, monospace;
-        --color-background: #0f172a;
-        --color-foreground: #f8fafc;
-        --color-card: #1b2336;
-        --color-muted: #272f42;
-        --color-muted-foreground: #94a3b8;
-        --color-border: #475569;
-        --color-accent: #01bbd8;
-        --color-on-accent: #0f172a;
-        --color-attention: #f59e0b;
-        --color-primary: #1e293b;
-      }
-    </style>
-    <style>
-      html {
-        background: #0f172a;
-        color: #f8fafc;
-        color-scheme: dark;
-        scroll-padding-top: 5.5rem;
-        overflow-x: clip;
-      }
-      body {
-        margin: 0;
-        font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-        font-size: 16px;
-        line-height: 1.5;
-      }
-      :focus-visible {
-        outline: 2px solid #ffffff;
-        outline-offset: 3px;
-      }
-      h1, h2, h3 {
-        text-wrap: balance;
-      }
-      @media (prefers-reduced-motion: no-preference) {
-        html.motion .reveal {
-          animation: rise 0.35s ease-out both;
-        }
-      }
-      @keyframes rise {
-        from { opacity: 0; transform: translateY(12px); }
-        to { opacity: 1; transform: none; }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        *, *::before, *::after {
-          animation: none !important;
-          transition: none !important;
-        }
-      }
-    </style>
-  </head>
-  <body class="bg-background font-sans text-foreground antialiased">
-    <a class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:bg-background focus:px-4 focus:py-2" href="#main">Skip to content</a>
-    <header class="sticky top-0 z-40 border-b border-border/70 bg-background/90 backdrop-blur">
-      <div class="mx-auto flex w-full min-w-0 max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 sm:px-6 lg:px-8">
-        <a href="#main" class="inline-flex min-h-11 shrink-0 cursor-pointer items-center py-1">
-          <img src="images/logo-nav.png" width="909" height="364" alt="CursorStack" class="h-11 w-auto sm:h-14">
-        </a>
-        <nav aria-label="On this page" class="flex min-w-0 basis-full flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground sm:basis-auto">
-          <a class="cursor-pointer hover:text-foreground" href="#product">Product</a>
-          <a class="cursor-pointer hover:text-foreground" href="#look">Look</a>
-          <a class="cursor-pointer hover:text-foreground" href="#how">How it works</a>
-          <a class="cursor-pointer hover:text-foreground" href="#shortcuts">Shortcuts</a>
-        </nav>
-        <a class="ml-auto inline-flex min-h-11 cursor-pointer items-center rounded-lg bg-accent px-4 text-sm font-semibold text-on-accent transition-colors duration-200 hover:bg-white" href="https://github.com/JewhurstEngineering/cursor-stack/releases/latest/download/CursorStack-1.0.9.zip">Download</a>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CursorStack — Your Cursor projects, one tab away</title>
+<meta name="description" content="CursorStack puts one tab strip on your Cursor windows on macOS and shows which agent is waiting on you. Nothing is uploaded. No account.">
+<link rel="canonical" href="https://cursorstack.app/">
+<meta name="theme-color" content="#e9eef6">
+<link rel="icon" href="favicon.png" type="image/png">
+<script>document.documentElement.classList.replace("no-js", "js")</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/demo.css">
+<style>
+  :root {
+    --paper: #e9eef6;
+    --paper-2: #f6f8fc;
+    --ink: #0f172a;
+    --slate: #52607a;
+    --rule: #c9d3e3;
+    --blue: #0a84ff;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --strip: #2c2c2e;
+    --sans: "Schibsted Grotesk", ui-sans-serif, system-ui, sans-serif;
+    --mac: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    --nav-h: 68px;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--paper); color: var(--ink); overflow-x: clip; }
+  body { margin: 0; font: 400 18px/1.55 var(--sans); -webkit-font-smoothing: antialiased; }
+  :focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
+  @media (min-width: 720px) { .wrap { padding: 0 32px; } }
+
+  .nav { position: sticky; top: 0; z-index: 30; height: var(--nav-h); background: color-mix(in srgb, var(--paper) 88%, transparent); backdrop-filter: blur(12px); }
+  .nav .wrap { height: 100%; display: flex; align-items: center; gap: 28px; }
+  .word { font-weight: 900; font-size: 24px; letter-spacing: -0.04em; text-decoration: none; color: var(--ink); }
+  .word span { color: var(--blue); }
+  .nav nav { display: none; gap: 24px; font-size: 16px; }
+  .nav nav a { color: var(--slate); text-decoration: none; }
+  .nav nav a:hover { color: var(--ink); }
+  @media (min-width: 860px) { .nav nav { display: flex; } }
+  .btn { display: inline-flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 22px; border-radius: 12px; font: 700 16px var(--sans); text-decoration: none; }
+  .btn-ink { background: var(--ink); color: #fff; }
+  .btn-ink:hover { background: var(--blue); }
+  .btn-quiet { color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--rule); }
+  .btn-quiet:hover { box-shadow: inset 0 0 0 1.5px var(--ink); }
+  .nav .btn { margin-left: auto; min-height: 40px; padding: 0 16px; font-size: 15px; }
+
+  /* scroll scene: pile → stack → live demo */
+  .scene { height: 250vh; position: relative; }
+  .stage { position: sticky; top: var(--nav-h); height: calc(100vh - var(--nav-h)); overflow: hidden; }
+  .copy { position: relative; z-index: 3; padding-top: clamp(16px, 4vh, 48px); }
+  .copy .grid { display: grid; }
+  .state { grid-area: 1 / 1; display: grid; gap: 20px 48px; align-items: end; align-content: start; transition: opacity .35s, transform .35s; }
+  @media (min-width: 960px) { .state { grid-template-columns: 1.5fr 1fr; } }
+  .state h1, .state h2 { font-weight: 900; font-size: clamp(38px, 5.4vw, 76px); line-height: .95; letter-spacing: -0.035em; margin: 0; }
+  .state p { margin: 0; color: var(--slate); font-size: 19px; max-width: 36ch; }
+  .state .cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+  .state .try { margin-top: 14px; font-size: 15px; color: var(--slate); display: flex; align-items: center; gap: 8px; }
+  .state .try::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--amber); }
+  .js .after { opacity: 0; transform: translateY(16px); pointer-events: none; }
+  .skip { position: absolute; left: 16px; top: -60px; z-index: 50; background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 8px; }
+  .skip:focus { top: 12px; }
+  /* without JavaScript: no scroll scene, just the stacked copy and a real screenshot */
+  .no-js .scene { height: auto; }
+  .no-js .stage { position: static; height: auto; overflow: visible; }
+  .no-js .before, .no-js .scroll-cue, .no-js .demo-slot, .no-js .try { display: none; }
+  .fallback { display: none; }
+  .no-js .fallback { display: block; margin: 40px auto 96px; }
+  .fallback img { width: 100%; height: auto; display: block; border-radius: 12px; box-shadow: 0 30px 60px -30px rgba(15,23,42,.5); }
+  .scene.done .after { pointer-events: auto; }
+
+  .w { position: absolute; left: 0; top: 0; z-index: 1; border-radius: 12px; background: #1b1b1d; border: 1px solid #3a3a3e; overflow: hidden;
+    box-shadow: 0 24px 50px -18px rgba(15,23,42,.45); will-change: transform; }
+  .w .bar { height: 30px; display: flex; align-items: center; gap: 7px; padding: 0 10px; background: #2a2a2d; font: 500 12px var(--mac); color: #cfcfcf; }
+  .w .bar i { width: 10px; height: 10px; border-radius: 50%; display: block; flex: none; }
+  .w .bar b { font-weight: 500; margin-left: 8px; white-space: nowrap; }
+  .w .bar .ring { width: 8px; height: 8px; border-radius: 50%; border: 2px solid var(--amber); margin-left: auto; }
+  .w .body { padding: 14px; display: grid; gap: 7px; }
+  .w .body span { height: 7px; border-radius: 4px; background: #333338; display: block; }
+  .w .body span.hl { background: #2f4a7a; }
+  .demo-slot { position: absolute; z-index: 2; opacity: 0; box-shadow: 0 50px 100px -40px rgba(15,23,42,.6); border-radius: 14px; }
+  .scroll-cue { position: absolute; z-index: 3; left: 50%; bottom: 20px; transform: translateX(-50%); margin: 0; font-size: 15px; color: #fff; background: var(--ink); padding: 8px 14px; border-radius: 999px; }
+
+  /* sections */
+  section.band { padding: 112px 0; border-top: 1px solid var(--rule); }
+  section.alt { background: var(--paper-2); }
+  h2.big { font-weight: 900; font-size: clamp(34px, 4.8vw, 60px); line-height: 1; letter-spacing: -0.03em; margin: 0 0 16px; max-width: 17ch; }
+  .sub { color: var(--slate); font-size: 20px; margin: 0; max-width: 48ch; }
+
+  .signals { margin-top: 56px; display: grid; gap: 40px; }
+  @media (min-width: 860px) { .signals { grid-template-columns: repeat(3, 1fr); gap: 32px; } }
+  .signals > div { border-top: 2px solid var(--ink); padding-top: 24px; }
+  .chip { display: inline-flex; align-items: center; gap: 10px; height: 40px; padding: 0 14px; border-radius: 9px; background: var(--strip); color: #fff; font: 500 16px var(--mac); }
+  .chip i { width: 11px; height: 11px; border-radius: 50%; display: block; }
+  .signals h3 { font-weight: 700; font-size: 24px; letter-spacing: -0.02em; margin: 20px 0 6px; }
+  .signals p { margin: 0; color: var(--slate); }
+
+  .split { display: grid; gap: 48px; align-items: center; }
+  @media (min-width: 900px) { .split { grid-template-columns: 1fr 1.25fr; } }
+  .seg { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; margin-top: 28px; border-radius: 12px; background: #fff; box-shadow: inset 0 0 0 1px var(--rule); }
+  .seg button { font: 700 15px var(--sans); color: var(--slate); background: transparent; border: 0; border-radius: 9px; padding: 9px 18px; min-height: 42px; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+  .mini { position: relative; aspect-ratio: 16 / 10; border-radius: 16px; background: linear-gradient(150deg, #cfdcf0, #e4ebf6 55%, #d5e1f2); box-shadow: inset 0 0 0 1px var(--rule); }
+  .mini-win { position: absolute; inset: 7%; display: grid; border-radius: 10px; overflow: hidden; background: #181818; border: 1px solid #333; box-shadow: 0 30px 60px -24px rgba(15,23,42,.5);
+    grid-template-areas: "bar" "body"; grid-template-rows: 32px 1fr; transition: grid-template-rows .35s, grid-template-columns .35s; }
+  .mini-win[data-edge="bottom"] { grid-template-areas: "body" "bar"; grid-template-rows: 1fr 32px; }
+  .mini-win[data-edge="left"] { grid-template-areas: "bar body"; grid-template-columns: 120px 1fr; grid-template-rows: 1fr; }
+  .mini-win[data-edge="right"] { grid-template-areas: "body bar"; grid-template-columns: 1fr 120px; grid-template-rows: 1fr; }
+  .mini-bar { grid-area: bar; background: var(--strip); display: flex; gap: 4px; padding: 5px 8px; align-items: center; font: 500 11px var(--mac); color: rgba(255,255,255,.75); overflow: hidden; }
+  .mini-win[data-edge="left"] .mini-bar, .mini-win[data-edge="right"] .mini-bar { flex-direction: column; align-items: stretch; padding: 10px 8px; }
+  .mini-bar span { padding: 3px 8px; border-radius: 5px; white-space: nowrap; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .mini-bar span.on { background: rgba(10,132,255,.4); color: #fff; }
+  .mini-bar i { width: 6px; height: 6px; border-radius: 50%; background: var(--amber); display: block; }
+  .mini-body { grid-area: body; padding: 16px; display: grid; gap: 8px; align-content: start; }
+  .mini-body i { display: block; height: 7px; border-radius: 4px; background: #2e2e2e; }
+
+  .two { display: grid; gap: 64px; margin-top: 8px; }
+  @media (min-width: 900px) { .two { grid-template-columns: 1fr 1fr; } }
+  .rows { margin-top: 32px; border-top: 2px solid var(--ink); }
+  .rows div { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 18px 0; border-bottom: 1px solid var(--rule); flex-wrap: wrap; }
+  .rows span:last-child { color: var(--slate); text-align: right; }
+  kbd { font: 600 17px var(--mac); background: #fff; border: 1px solid var(--rule); border-bottom-width: 3px; border-radius: 8px; padding: 3px 10px; color: var(--ink); }
+  .nevers { list-style: none; padding: 0; margin: 32px 0 0; }
+  .nevers li { font-weight: 900; font-size: clamp(28px, 3.4vw, 42px); letter-spacing: -0.03em; line-height: 1.2; color: var(--slate);
+    text-decoration: line-through; text-decoration-color: var(--amber); text-decoration-thickness: 4px; }
+  .note { margin-top: 24px; color: var(--slate); max-width: 44ch; }
+
+  .shots { margin-top: 48px; display: grid; gap: 24px; }
+  @media (min-width: 900px) { .shots { grid-template-columns: 1.3fr 1fr; } .shots .big { grid-row: span 2; } }
+  .shots figure { margin: 0; }
+  .shots img { width: 100%; height: auto; display: block; border-radius: 12px; box-shadow: 0 24px 50px -30px rgba(15,23,42,.5), 0 0 0 1px var(--rule); }
+  .shots figcaption { margin-top: 10px; color: var(--slate); font-size: 15px; }
+
+  .foot { padding-top: 112px; padding-bottom: 64px; border-top: 1px solid var(--rule); }
+  .foot .cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+  .legal { padding-bottom: 56px; }
+  .legal small { display: block; color: var(--slate); font-size: 14px; max-width: 70ch; }
+
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="nav"><div class="wrap">
+  <a class="word" href="#main">Cursor<span>Stack</span></a>
+  <nav aria-label="On this page"><a href="#signals">Signals</a><a href="#edges">Any edge</a><a href="#keys">Shortcuts</a><a href="#privacy">Privacy</a></nav>
+  <a class="btn btn-ink" href="https://github.com/JewhurstEngineering/cursor-stack/releases/latest/download/CursorStack-1.0.9.zip">Download</a>
+</div></header>
+
+<main id="main">
+<section class="scene" id="scene">
+  <div class="stage" id="stage">
+    <div class="copy wrap" id="copy"><div class="grid">
+      <div class="state before" id="before">
+        <h1>Seven Cursor windows. Which one is waiting?</h1>
+        <p>Every project gets its own window, and macOS treats each one as a stranger.</p>
       </div>
-    </header>
-
-    <main id="main">
-      <section class="mx-auto w-full min-w-0 max-w-6xl px-4 pb-16 pt-12 sm:px-6 sm:pb-24 lg:px-8">
-        <div class="reveal min-w-0">
-          <img src="images/logo-nav.png" width="909" height="364" alt="" class="w-full max-w-[220px] sm:max-w-xs">
-          <p class="mt-6 font-mono text-sm text-accent">macOS 14 or newer · Apple silicon</p>
-          <h1 class="mt-3 max-w-3xl font-mono text-4xl font-medium leading-tight tracking-tight sm:text-5xl">Your Cursor projects, one tab away.</h1>
-          <p class="mt-4 max-w-2xl text-lg text-muted-foreground">CursorStack lines up the Cursor windows you already have and puts one tab strip on them. Same frame, one click to switch.</p>
-          <div class="mt-7 flex flex-wrap items-center gap-3">
-            <a class="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg bg-accent px-5 font-semibold text-on-accent transition-colors duration-200 hover:bg-white" href="https://github.com/JewhurstEngineering/cursor-stack/releases/latest/download/CursorStack-1.0.9.zip">
-              <svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
-              Download for Mac
-            </a>
-            <a class="inline-flex min-h-11 cursor-pointer items-center rounded-lg border border-border px-5 text-foreground transition-colors duration-200 hover:border-foreground" href="https://github.com/JewhurstEngineering/cursor-stack">Source</a>
-            <span class="text-sm text-muted-foreground">Free · Nothing uploaded · No account</span>
+      <div class="state after" id="after">
+        <h2>One strip. Every project.</h2>
+        <div>
+          <p>CursorStack lines up your Cursor windows and puts a tab strip on top. When an agent finishes or asks a question, its tab turns amber.</p>
+          <div class="cta">
+            <a class="btn btn-ink" href="https://github.com/JewhurstEngineering/cursor-stack/releases/latest/download/CursorStack-1.0.9.zip">Download for Mac</a>
+            <a class="btn btn-quiet" href="https://github.com/JewhurstEngineering/cursor-stack">View source</a>
           </div>
+          <p class="try">Try it: click a tab with an amber dot.</p>
         </div>
-
-        <figure class="reveal mt-10 min-w-0">
-          
-          <div class="rounded-b-xl border border-border/80">
-            <img src="images/tab-strip.jpg" width="auto" height="auto" alt="The same strip on a real Cursor window, with the Add menu open" class="-mt-[2.15%] w-full">
-          </div>
-          <figcaption class="mt-4 max-w-3xl text-sm text-muted-foreground">Many projects, one strip, sitting on your real Cursor window. Add a window or manage the stack from the menu on the right.</figcaption>
-        </figure>
-      </section>
-
-      <section id="product" class="border-t border-border/70">
-        <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-          <h2 class="font-mono text-3xl font-medium tracking-tight">One strip. Real windows.</h2>
-          <p class="mt-4 max-w-2xl text-lg text-muted-foreground">macOS treats every Cursor window as its own thing. CursorStack keeps the ones you pick on the same frame and lets you move between them like tabs.</p>
-          <ul class="mt-12 grid gap-4 md:grid-cols-3">
-            <li class="rounded-xl border border-border/80 bg-card p-6">
-              <svg aria-hidden="true" viewBox="0 0 24 24" class="h-6 w-6 text-accent" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 9h18"/></svg>
-              <h3 class="mt-4 font-mono text-lg">The windows stay Cursor’s</h3>
-              <p class="mt-2 text-muted-foreground">Nothing is embedded or re-parented. The strip sits above the title bar, so Cursor’s own search field still works.</p>
-            </li>
-            <li class="rounded-xl border border-border/80 bg-card p-6">
-              <svg aria-hidden="true" viewBox="0 0 24 24" class="h-6 w-6 text-accent" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7h11"/><path d="M8 12h11"/><path d="M8 17h11"/><path d="M4 7h.01"/><path d="M4 12h.01"/><path d="M4 17h.01"/></svg>
-              <h3 class="mt-4 font-mono text-lg">Drag the tabs into the order you want</h3>
-              <p class="mt-2 text-muted-foreground">Reorder in the strip, or drop a tab onto another group. Groups stay in Application Support on this Mac.</p>
-            </li>
-            <li class="rounded-xl border border-border/80 bg-card p-6">
-              <svg aria-hidden="true" viewBox="0 0 24 24" class="h-6 w-6 text-accent" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 7 3 9H3c0-2 3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
-              <h3 class="mt-4 font-mono text-lg">See which project needs you</h3>
-              <p class="mt-2 text-muted-foreground">A mark shows on a tab while a chat in that window is running, and a stronger one when that chat is waiting on you. Notifications are optional.</p>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <section id="look" class="border-t border-border/70">
-        <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-          <h2 class="font-mono text-3xl font-medium tracking-tight">What it looks like</h2>
-          <div class="mt-12 grid items-start gap-8 lg:grid-cols-5">
-            <figure class="min-w-0 lg:col-span-3">
-              <img src="images/settings.jpg" width="877" height="745" alt="CursorStack Settings in dark mode, showing the app is installed and Accessibility is connected" class="w-full rounded-xl border border-border/80">
-              <figcaption class="mt-3 text-sm text-muted-foreground">Settings is where you install it, check for a signed update, and choose whether it shows in the menu bar and the Dock.</figcaption>
-            </figure>
-            <div class="grid min-w-0 gap-8 lg:col-span-2">
-              <figure>
-                <img src="images/tab-menu.jpg" width="689" height="275" alt="Right-click menu on a CursorStack tab, with Switch To, Move Left, and Detach From Group" class="w-full rounded-xl border border-border/80">
-                <figcaption class="mt-3 text-sm text-muted-foreground">Right-click a tab to reorder it, rename it, or pull that window out of the stack.</figcaption>
-              </figure>
-              <figure>
-                <img src="images/group-menu.jpg" width="415" height="302" alt="CursorStack Group menu listing the current stack and its projects" class="w-full rounded-xl border border-border/80">
-                <figcaption class="mt-3 text-sm text-muted-foreground">The Group menu is the stack you’re in, and the projects you can switch to.</figcaption>
-              </figure>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="how" class="border-t border-border/70">
-        <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-          <h2 class="font-mono text-3xl font-medium tracking-tight">How it works</h2>
-          <div class="mt-12 grid gap-12 lg:grid-cols-2">
-            <div>
-              <h3 class="font-mono text-sm tracking-wide text-accent">Install</h3>
-              <ol class="mt-4 space-y-4">
-                <li class="flex gap-4"><span class="font-mono text-muted-foreground">01</span><span>Unzip the release and open CursorStack.</span></li>
-                <li class="flex gap-4"><span class="font-mono text-muted-foreground">02</span><span>Choose Install to Applications in Settings.</span></li>
-                <li class="flex gap-4"><span class="font-mono text-muted-foreground">03</span><span>Grant Accessibility when macOS asks.</span></li>
-              </ol>
-            </div>
-            <div>
-              <h3 class="font-mono text-sm tracking-wide text-accent">Use</h3>
-              <ol class="mt-4 space-y-4">
-                <li class="flex gap-4"><span class="font-mono text-muted-foreground">04</span><span>Open the Cursor windows you want in one place.</span></li>
-                <li class="flex gap-4"><span class="font-mono text-muted-foreground">05</span><span>Make a stack from the menu bar icon or the window picker.</span></li>
-                <li class="flex gap-4"><span class="font-mono text-muted-foreground">06</span><span>Click a tab, or use the shortcuts, to bring that project forward.</span></li>
-              </ol>
-            </div>
-          </div>
-          <p class="mt-10 max-w-3xl text-muted-foreground">Closing CursorStack leaves the Cursor windows open. Clicking another app hides the strip, the same way a normal window would.</p>
-        </div>
-      </section>
-
-      <section id="requirements" class="border-t border-border/70">
-        <div class="mx-auto grid max-w-6xl gap-8 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-2 lg:px-8">
-          <div class="rounded-xl border border-border/80 bg-card p-6 sm:p-8">
-            <h2 class="font-mono text-2xl font-medium">Requirements</h2>
-            <ul class="mt-6 space-y-3">
-              <li>macOS 14 or newer</li>
-              <li>Apple silicon Mac</li>
-              <li>Cursor</li>
-              <li>Accessibility permission</li>
-              <li>Notifications, if you want them</li>
-              <li>Screen Recording, only for the experimental attention check</li>
-            </ul>
-          </div>
-          <div id="privacy" class="rounded-xl border border-border/80 bg-card p-6 sm:p-8">
-            <h2 class="font-mono text-2xl font-medium">What it never does</h2>
-            <ul class="mt-6 space-y-3">
-              <li>Read your source code</li>
-              <li>Read your chat messages</li>
-              <li>Modify Cursor</li>
-              <li>Upload window contents</li>
-              <li>Ask you to make an account</li>
-            </ul>
-            <p class="mt-6 text-muted-foreground">The only network request is Sparkle checking the public GitHub release feed for a signed update. The update archive is verified before it installs.</p>
-          </div>
-        </div>
-      </section>
-
-      <section id="shortcuts" class="border-t border-border/70">
-        <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-          <h2 class="font-mono text-3xl font-medium tracking-tight">Shortcuts</h2>
-          <p class="mt-4 max-w-2xl text-muted-foreground">These are the defaults. Change them under Settings, Shortcuts. CursorStack warns you if one clashes with another shortcut or with macOS.</p>
-          <ul class="mt-8 max-w-xl divide-y divide-border/70 border-y border-border/70">
-            <li class="flex flex-wrap items-center justify-between gap-3 py-4">
-              <span>Next tab</span>
-              <kbd class="font-mono text-sm">⌃⌥ ]</kbd>
-            </li>
-            <li class="flex flex-wrap items-center justify-between gap-3 py-4">
-              <span>Previous tab</span>
-              <kbd class="font-mono text-sm">⌃⌥ [</kbd>
-            </li>
-            <li class="flex flex-wrap items-center justify-between gap-3 py-4">
-              <span>Jump to a tab</span>
-              <kbd class="font-mono text-sm">⌃⌥ 1–9</kbd>
-            </li>
-          </ul>
-          <div class="mt-12 flex flex-wrap items-center gap-4">
-            <a class="inline-flex min-h-11 cursor-pointer items-center rounded-lg bg-accent px-5 font-semibold text-on-accent transition-colors duration-200 hover:bg-white" href="https://github.com/JewhurstEngineering/cursor-stack/releases/latest/download/CursorStack-1.0.9.zip">Download for Mac</a>
-            <p class="text-sm text-muted-foreground">Downloads CursorStack-1.0.9.zip.</p>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <footer class="border-t border-border/70">
-      <div class="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-        <img src="images/logo-full-color.png" width="960" height="540" alt="" class="mb-6 w-44">
-        <p class="max-w-3xl text-sm text-muted-foreground">CursorStack is an independent open-source project. It is not affiliated with, endorsed by, or sponsored by Anysphere or Cursor. Cursor is a trademark of its respective owner.</p>
-        <p class="mt-4 text-sm"><a class="cursor-pointer text-accent hover:text-foreground" href="https://github.com/JewhurstEngineering/cursor-stack">github.com/JewhurstEngineering/cursor-stack</a></p>
       </div>
-    </footer>
-    <script>
-      if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-        document.documentElement.classList.add("motion");
-      }
-    </script>
-  </body>
+    </div></div>
+    <div id="pile" aria-hidden="true"></div>
+    <div class="demo-slot" id="slot"><div id="demo"></div></div>
+    <p class="scroll-cue" id="cue" aria-hidden="true">Scroll to stack them</p>
+    <div class="fallback wrap"><img src="images/tab-strip.jpg" width="1024" height="349" alt="The CursorStack tab strip on a real Cursor window, with the Add menu open"></div>
+  </div>
+</section>
+
+<section class="band alt" id="signals"><div class="wrap">
+  <h2 class="big">Know which agent needs you.</h2>
+  <p class="sub">While a chat runs in one project, you’re usually working in another. The tab tells you when to come back, with or without a notification.</p>
+  <div class="signals">
+    <div><span class="chip">billing-api <i style="border:2.5px solid var(--amber)"></i></span><h3>Chat running</h3><p>An agent in that window is working. Leave it alone.</p></div>
+    <div><span class="chip">ios-app <i style="background:var(--amber)"></i></span><h3>Waiting on you</h3><p>It finished, or it wants an answer. One click brings that window forward.</p></div>
+    <div><span class="chip">infra <i style="background:var(--red)"></i></span><h3>Needs attention</h3><p>Something went wrong in that chat. Go and look.</p></div>
+  </div>
+</div></section>
+
+<section class="band" id="edges"><div class="wrap split">
+  <div>
+    <h2 class="big">Put the strip on any edge.</h2>
+    <p class="sub">Top is the default, so Cursor’s own search field stays clear. Move it to the bottom or down one side in Settings.</p>
+    <div class="seg" role="group" aria-label="Strip position">
+      <button aria-pressed="true" data-edge="top">Top</button><button aria-pressed="false" data-edge="bottom">Bottom</button><button aria-pressed="false" data-edge="left">Left</button><button aria-pressed="false" data-edge="right">Right</button>
+    </div>
+  </div>
+  <div class="mini" aria-hidden="true">
+    <div class="mini-win" id="mini" data-edge="top">
+      <div class="mini-bar"><span class="on">web</span><span>billing-api</span><span>ios-app <i></i></span><span>infra</span></div>
+      <div class="mini-body"><i style="width:40%"></i><i style="width:72%"></i><i style="width:58%"></i><i style="width:66%"></i><i style="width:30%"></i><i style="width:80%"></i><i style="width:48%"></i></div>
+    </div>
+  </div>
+</div></section>
+
+<section class="band alt" id="keys"><div class="wrap two">
+  <div>
+    <h2 class="big">Switch without the mouse.</h2>
+    <p class="sub">Change these in Settings. CursorStack warns you if one clashes with macOS or another app.</p>
+    <div class="rows">
+      <div><span>Next tab</span><span><kbd>⌃⌥]</kbd></span></div>
+      <div><span>Previous tab</span><span><kbd>⌃⌥[</kbd></span></div>
+      <div><span>Jump to a tab</span><span><kbd>⌃⌥1</kbd> to <kbd>⌃⌥9</kbd></span></div>
+    </div>
+  </div>
+  <div id="privacy">
+    <h2 class="big">It moves windows. That’s all.</h2>
+    <ul class="nevers"><li>Reads your code</li><li>Changes Cursor</li><li>Uploads your screen</li><li>Wants an account</li></ul>
+    <p class="note">The one network request is Sparkle checking GitHub for a signed update, which is verified before it installs.</p>
+  </div>
+</div></section>
+
+<section class="band"><div class="wrap">
+  <h2 class="big">The real app.</h2>
+  <p class="sub">Settings, the tab menu, and the group menu, as they look on a Mac today.</p>
+  <div class="shots">
+    <figure class="big"><img src="images/settings.jpg" width="877" height="745" alt="CursorStack Settings showing install status and Accessibility connected"><figcaption>Install, check for a signed update, and choose where the app shows.</figcaption></figure>
+    <figure><img src="images/tab-menu.jpg" width="689" height="275" alt="Right-click menu on a tab"><figcaption>Right-click a tab to move it, rename it, or pull it out.</figcaption></figure>
+    <figure><img src="images/group-menu.jpg" width="415" height="302" alt="Group menu listing projects" style="max-width:420px"><figcaption>The Group menu lists the stack you’re in.</figcaption></figure>
+  </div>
+  <div class="rows" style="margin-top:72px">
+    <div><span>macOS</span><span>14 or newer, Apple silicon</span></div>
+    <div><span>Accessibility</span><span>Required, to move windows</span></div>
+    <div><span>Notifications</span><span>Optional</span></div>
+    <div><span>Screen Recording</span><span>Only for the experimental attention check</span></div>
+  </div>
+</div></section>
+
+<section class="wrap foot">
+  <h2 class="big">Get back to the one that’s waiting.</h2>
+  <div class="cta">
+    <a class="btn btn-ink" href="https://github.com/JewhurstEngineering/cursor-stack/releases/latest/download/CursorStack-1.0.9.zip">Download CursorStack 1.0.9</a>
+    <a class="btn btn-quiet" href="https://github.com/JewhurstEngineering/cursor-stack">View source</a>
+  </div>
+</section>
+</main>
+
+<footer class="wrap legal">
+  <small>Free and open source. CursorStack is an independent project, not affiliated with, endorsed by, or sponsored by Anysphere or Cursor. Cursor is a trademark of its respective owner.</small>
+</footer>
+
+<script src="assets/demo.js"></script>
+<script>
+(() => {
+  const demo = CSDemo.mount(document.getElementById("demo"));
+  const names = ["web", "billing-api", "ios-app", "infra", "docs-site", "ml-eval", "design-system"];
+  const running = [1, 2];
+  // start positions: x as a fraction of width, y as a fraction of the area under the copy, width fraction, rotation
+  const scatter = [
+    [0.30, 0.18, 0.30, -3], [0.02, 0.06, 0.26, -8], [0.66, 0.02, 0.28, 6], [0.58, 0.56, 0.26, 4],
+    [0.10, 0.62, 0.24, 7], [0.80, 0.44, 0.22, -9], [0.40, 0.72, 0.22, 10],
+  ];
+  const pile = document.getElementById("pile");
+  const wins = names.map((n, i) => {
+    const d = document.createElement("div"); d.className = "w";
+    d.innerHTML = `<div class="bar"><i style="background:#ff605c"></i><i style="background:#ffbd2e"></i><i style="background:#30d158"></i><b>${n}</b>${running.includes(i) ? '<span class="ring"></span>' : ""}</div>
+      <div class="body">${[40, 70, 55, 82, 36, 64, 48, 74, 30, 58].map((w, k) => `<span class="${k === 3 ? "hl" : ""}" style="width:${w}%"></span>`).join("")}</div>`;
+    pile.appendChild(d); return d;
+  });
+  wins[0].style.zIndex = 2;
+
+  const scene = document.getElementById("scene"), stage = document.getElementById("stage"), slot = document.getElementById("slot");
+  const before = document.getElementById("before"), after = document.getElementById("after"), copy = document.getElementById("copy");
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduce) scene.style.height = "auto";
+  const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  const clamp = (v) => Math.min(1, Math.max(0, v));
+  let started = false;
+
+  function frame() {
+    const W = stage.clientWidth, H = stage.clientHeight, narrow = W < 720;
+    const r = scene.getBoundingClientRect();
+    const p = reduce ? 1 : clamp(-r.top / Math.max(1, r.height - innerHeight));
+    const e = ease(clamp(p / 0.7));
+    const pad = narrow ? 16 : Math.max(32, (W - 1200) / 2 + 32);
+    const top = copy.offsetTop + copy.offsetHeight + (narrow ? 44 : 56);
+    const tx = pad, tw = W - pad * 2, ty = top, th = Math.max(260, H - top - (narrow ? 16 : 32));
+    wins.forEach((el, i) => {
+      const [sx, sy, sw, rot] = scatter[i];
+      const w0 = (narrow ? Math.min(0.62, sw * 2.2) : sw) * W, h0 = w0 * 0.62;
+      const x0 = sx * (W - w0 * (narrow ? .5 : .6)), y0 = top - 10 + sy * (H - top);
+      const depth = i === 0 ? 0 : i;
+      const ox = -depth * 4, oy = -depth * 4;
+      const w = w0 + (tw - w0) * e, h = h0 + (th - h0) * e;
+      el.style.width = w + "px"; el.style.height = h + "px";
+      el.style.transform = `translate(${x0 + (tx + ox - x0) * e}px, ${y0 + (ty + oy - y0) * e}px) rotate(${rot * (1 - e)}deg)`;
+      el.style.filter = i === 0 ? "none" : `brightness(${1 - e * 0.3})`;
+    });
+    Object.assign(slot.style, { left: tx + "px", top: ty + "px", width: tw + "px", height: th + "px" });
+    const s = clamp((p - 0.72) / 0.14);
+    slot.style.opacity = s; slot.style.pointerEvents = s > 0.9 ? "auto" : "none";
+    wins[0].style.opacity = 1 - s;
+    const flip = p > 0.55;
+    before.style.opacity = flip ? 0 : 1; before.style.transform = flip ? "translateY(-16px)" : "none";
+    after.style.opacity = flip ? 1 : 0; after.style.transform = flip ? "none" : "translateY(16px)";
+    scene.classList.toggle("done", flip);
+    document.getElementById("cue").style.opacity = p > 0.04 ? 0 : 1;
+    if (s > 0.9 && !started) { started = true; demo.start(); }
+  }
+  // keyboard focus on the hidden buttons or demo jumps straight to the stacked state
+  const toEnd = () => { if (!scene.classList.contains("done") || slot.style.opacity < 1) scrollTo(0, scene.offsetTop + scene.offsetHeight - innerHeight); };
+  after.addEventListener("focusin", toEnd); slot.addEventListener("focusin", toEnd);
+  addEventListener("scroll", () => requestAnimationFrame(frame), { passive: true });
+  addEventListener("resize", frame);
+  document.fonts && document.fonts.ready.then(frame);
+  frame();
+
+  const mini = document.getElementById("mini");
+  document.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => {
+    document.querySelectorAll(".seg button").forEach(x => x.setAttribute("aria-pressed", x === b));
+    mini.dataset.edge = b.dataset.edge;
+  }));
+})();
+</script>
+</body>
 </html>

@@ -39,7 +39,7 @@ CursorStack checks GitHub Releases for signed updates using [Sparkle](https://sp
 
 CursorStack uses macOS Accessibility APIs to discover, move, resize, and focus Cursor windows. It is intentionally **not App Sandboxed** because sandboxed apps cannot control windows owned by another process. Releases use Hardened Runtime, Developer ID signing, and Apple notarization.
 
-Nothing is uploaded. CursorStack has no account or backend and does not read your source code. Tab marks read whether a chat is running or waiting from Cursor's local status, not the message text. The only network request is Sparkle checking the public GitHub release feed for updates.
+Nothing is uploaded. CursorStack has no account or backend and does not read your source code. Tab marks read whether a chat is running, finished, or waiting from Cursor's local status, not the message text. The only network request is Sparkle checking the public GitHub release feed for updates.
 
 ## Build from source
 
