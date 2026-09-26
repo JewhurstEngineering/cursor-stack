@@ -16,6 +16,12 @@ enum AttentionState: String, Codable, Equatable, CaseIterable {
     var showsWorkingIndicator: Bool {
         self == .working
     }
+
+    var statusPrefix: String {
+        if showsTabDot { return "● " }
+        if showsWorkingIndicator { return "○ " }
+        return ""
+    }
 }
 
 enum AttentionSource: String, Codable {
@@ -23,6 +29,7 @@ enum AttentionSource: String, Codable {
     case metadata
     case visual
     case user
+    case composer
 }
 
 struct AttentionObservation: Equatable {

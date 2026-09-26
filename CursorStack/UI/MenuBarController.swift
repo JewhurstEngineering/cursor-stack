@@ -30,7 +30,7 @@ final class MenuBarController: NSObject {
         button.image = image
         button.imagePosition = .imageOnly
         button.title = ""
-        button.toolTip = hasAttention ? "CursorStack — a window needs attention" : "CursorStack"
+        button.toolTip = hasAttention ? "CursorStack — a chat is waiting on you" : "CursorStack"
         button.contentTintColor = hasAttention ? .controlAccentColor : nil
         item?.isVisible = true
 
@@ -49,7 +49,10 @@ final class MenuBarController: NSObject {
             menu.addItem(.separator())
             menu.addItem(header(group.name))
             for window in group.windows {
-                let prefix = window.attentionState.showsTabDot ? "● " : (window.id == group.activeWindowID ? "✓ " : "    ")
+                let mark = window.attentionState.statusPrefix
+                let prefix = mark.isEmpty
+                    ? (window.id == group.activeWindowID ? "✓ " : "    ")
+                    : mark
                 let item = NSMenuItem(
                     title: "\(prefix)\(window.displayName)",
                     action: #selector(activateFromMenu(_:)),

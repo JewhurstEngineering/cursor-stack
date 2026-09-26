@@ -115,8 +115,7 @@ struct TabStripView: View {
             TabItemView(
                 window: window,
                 selected: window.id == group.activeWindowID,
-                showDot: app.settingsStore.settings.showTabIndicator && window.attentionState.showsTabDot,
-                showWorking: app.settingsStore.settings.showTabIndicator && window.attentionState.showsWorkingIndicator,
+                showIndicator: app.settingsStore.settings.showTabIndicator,
                 showFullTitle: app.settingsStore.settings.showFullTitle,
                 showProjectName: app.settingsStore.settings.showProjectName,
                 fillsWidth: fillsWidth
@@ -321,14 +320,68 @@ private struct UnresolvedTabItemView: View {
     }
 }
 
+private struct ChatSignalMark: View {
+    enum Kind {
+        case running
+        case waiting
+        case error
+    }
+
+    var kind: Kind
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private static let amber = Color(red: 245.0 / 255, green: 158.0 / 255, blue: 11.0 / 255)
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: reduceMotion ? nil : 1.0 / 30.0, paused: reduceMotion)) { context in
+            let time = context.date.timeIntervalSinceReferenceDate
+            switch kind {
+            case .running:
+                let angle = reduceMotion ? -90.0 : time.truncatingRemainder(dividingBy: 1) * 360
+                Circle()
+                    .trim(from: 0.12, to: 1)
+                    .stroke(Self.amber, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                    .frame(width: 8, height: 8)
+                    .rotationEffect(.degrees(angle))
+                    .help("Chat running")
+            case .waiting, .error:
+                let color = kind == .error ? Color.red : Self.amber
+                let pulse = reduceMotion ? 0.0 : 0.5 + 0.5 * sin(time * .pi * 2 / 1.6)
+                Circle()
+                    .fill(color)
+                    .frame(width: 8, height: 8)
+                    .overlay {
+                        Circle()
+                            .stroke(color, lineWidth: 1.5)
+                            .scaleEffect(1 + pulse * 0.9)
+                            .opacity(1 - pulse)
+                    }
+                    .help(kind == .error ? "Needs attention" : "Waiting on you")
+            }
+        }
+    }
+}
+
 struct TabItemView: View {
     @ObservedObject var window: ManagedCursorWindow
     var selected: Bool
-    var showDot: Bool
-    var showWorking: Bool
+    var showIndicator: Bool
     var showFullTitle: Bool
     var showProjectName: Bool
     var fillsWidth: Bool = false
+
+    private var helpText: String {
+        switch window.attentionState {
+        case .working:
+            return "\(window.title) — chat running"
+        case .attention:
+            return "\(window.title) — waiting on you"
+        case .error:
+            return "\(window.title) — needs attention"
+        case .unknown, .idle, .completed:
+            return window.title
+        }
+    }
 
     private var label: String {
         if showFullTitle { return window.title }
@@ -346,14 +399,10 @@ struct TabItemView: View {
             if fillsWidth {
                 Spacer(minLength: 0)
             }
-            if showDot {
-                Circle()
-                    .fill(window.attentionState == .error ? Color.red : Color.accentColor)
-                    .frame(width: 7, height: 7)
-            } else if showWorking {
-                Circle()
-                    .strokeBorder(Color(nsColor: .labelColor).opacity(0.7), lineWidth: 1.2)
-                    .frame(width: 7, height: 7)
+            if showIndicator, window.attentionState.showsTabDot {
+                ChatSignalMark(kind: window.attentionState == .error ? .error : .waiting)
+            } else if showIndicator, window.attentionState.showsWorkingIndicator {
+                ChatSignalMark(kind: .running)
             }
         }
         .padding(.horizontal, 11)
@@ -363,7 +412,7 @@ struct TabItemView: View {
             RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .fill(selected ? Color(nsColor: .controlAccentColor).opacity(0.38) : Color.clear)
         )
-        .help(window.title)
+        .help(helpText)
         .opacity(window.isUnavailable ? 0.45 : 1)
         .animation(.easeInOut(duration: 0.12), value: selected)
     }

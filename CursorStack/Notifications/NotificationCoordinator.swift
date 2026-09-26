@@ -34,8 +34,7 @@ final class NotificationCoordinator: NSObject, @preconcurrency UNUserNotificatio
         guard authorized else { return }
         let content = UNMutableNotificationContent()
         content.title = "CursorStack"
-        content.body = "\(window.displayName) needs attention"
-        content.subtitle = "Cursor is waiting in the \(window.displayName) project."
+        content.body = "A chat in \(window.displayName) is waiting on you."
         content.categoryIdentifier = Self.categoryID
         content.userInfo = [
             Self.groupIDKey: groupID.uuidString,

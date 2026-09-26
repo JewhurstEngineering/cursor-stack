@@ -20,6 +20,13 @@ final class WindowTitleParserTests: XCTestCase {
             "cursor-stack"
         )
     }
+
+    func testProjectTokenIgnoresModifiedSuffix() {
+        XCTAssertEqual(
+            WindowTitleParser.projectToken(from: "declined-work-and-recommendations.md — shift-sms-ts — Modified"),
+            "shift-sms-ts"
+        )
+    }
 }
 
 final class WindowMatcherTests: XCTestCase {
@@ -482,17 +489,182 @@ final class AttentionDedupTests: XCTestCase {
 }
 
 final class AccessibilityAttentionInterpretTests: XCTestCase {
-    func testUnreadHint() {
+    func testStopGenerationIsWorking() {
         let observation = AccessibilityAttentionProvider.interpret(
-            hints: ["AXButton desc=Chat, 1 unread"],
-            title: "AI Meter — Cursor"
+            labels: ["Stop generation"],
+            regionReadable: true
+        )
+        XCTAssertEqual(observation.state, .working)
+    }
+
+    func testWaitingForApprovalNeedsYou() {
+        let observation = AccessibilityAttentionProvider.interpret(
+            labels: ["Waiting for approval"],
+            regionReadable: true
         )
         XCTAssertEqual(observation.state, .attention)
     }
 
-    func testMetadataDot() {
+    func testReadableComposerWithNoControlsIsIdle() {
+        let observation = AccessibilityAttentionProvider.interpret(
+            labels: ["Send"],
+            regionReadable: true
+        )
+        XCTAssertEqual(observation.state, .idle)
+    }
+
+    func testEditorLineIsNotASignal() {
+        let observation = AccessibilityAttentionProvider.interpret(
+            labels: ["waiting-for-approval.ts", "error: something failed"],
+            regionReadable: true
+        )
+        XCTAssertEqual(observation.state, .idle)
+    }
+
+    func testUnreadableComposerStaysUnknown() {
+        let observation = AccessibilityAttentionProvider.interpret(
+            labels: [],
+            regionReadable: false
+        )
+        XCTAssertEqual(observation.state, .unknown)
+    }
+
+    func testWorkingStatusIsRunning() {
+        let observation = AccessibilityAttentionProvider.interpret(
+            labels: ["2 Working"],
+            regionReadable: true
+        )
+        XCTAssertEqual(observation.state, .working)
+    }
+
+    func testPullRequestReviewersAreNotASignal() {
+        let observation = AccessibilityAttentionProvider.interpret(
+            labels: ["Waiting for Reviewers"],
+            regionReadable: true
+        )
+        XCTAssertEqual(observation.state, .idle)
+    }
+
+    func testDirtyFileBulletIsNotAttention() {
         let observation = WindowMetadataAttentionProvider.interpret(title: "● backend — Cursor")
-        XCTAssertEqual(observation.state, .attention)
+        XCTAssertEqual(observation.state, .unknown)
+    }
+}
+
+final class ComposerActivityTests: XCTestCase {
+    private let now = Date(timeIntervalSince1970: 1_800_000_000)
+    private let workspaces = [
+        ComposerWorkspace(id: "stack", folderName: "cursor-stack"),
+        ComposerWorkspace(id: "shift-a", folderName: "shift-sms-ts"),
+        ComposerWorkspace(id: "shift-b", folderName: "shift-sms-ts")
+    ]
+
+    func testFreshCheckpointWhileARunIsOpenIsWorking() {
+        let headers = [
+            header(workspace: "stack", unfinished: true, checkpoint: now.addingTimeInterval(-12))
+        ]
+        XCTAssertEqual(activity(headers), .working)
+    }
+
+    func testHeartbeatWithoutAnOpenRunIsStillWorking() {
+        let headers = [
+            header(workspace: "stack", unfinished: false, checkpoint: now.addingTimeInterval(-8))
+        ]
+        XCTAssertEqual(activity(headers), .working)
+    }
+
+    func testDaysOldUnfinishedRunIsIdle() {
+        let headers = [
+            header(workspace: "shift-a", unfinished: true, checkpoint: now.addingTimeInterval(-25 * 24 * 3600))
+        ]
+        XCTAssertEqual(activity(headers), .idle)
+    }
+
+    func testBlockingQuestionNeedsYou() {
+        let headers = [
+            header(
+                workspace: "stack",
+                blocking: true,
+                unfinished: true,
+                checkpoint: now.addingTimeInterval(-30),
+                updated: now.addingTimeInterval(-3600)
+            )
+        ]
+        XCTAssertEqual(activity(headers), .attention)
+    }
+
+    func testStuckBlockingFlagIsNotWaiting() {
+        let headers = [
+            header(
+                workspace: "shift-a",
+                blocking: true,
+                checkpoint: now.addingTimeInterval(-57 * 3600),
+                updated: now.addingTimeInterval(-57 * 3600)
+            )
+        ]
+        XCTAssertEqual(activity(headers), .idle)
+    }
+
+    func testModifiedTitleMapsToTheProjectNotTheDirtyWord() {
+        let state = ComposerActivity.state(
+            matching: "declined-work-and-recommendations.md — shift-sms-ts — Modified",
+            workspaces: workspaces,
+            headers: [
+                header(workspace: "shift-b", unfinished: true, checkpoint: now.addingTimeInterval(-20))
+            ],
+            now: now
+        )
+        XCTAssertEqual(state, .working)
+    }
+
+    func testUnknownProjectDoesNotInventAState() {
+        let state = ComposerActivity.state(
+            matching: "Cursor Agents",
+            workspaces: workspaces,
+            headers: [
+                header(workspace: "stack", unfinished: true, checkpoint: now.addingTimeInterval(-5))
+            ],
+            now: now
+        )
+        XCTAssertNil(state)
+    }
+
+    func testChatsInEitherWorkspaceCopyCount() {
+        let state = ComposerActivity.state(
+            matching: "notes.md — shift-sms-ts — Cursor",
+            workspaces: workspaces,
+            headers: [
+                header(workspace: "shift-a", unfinished: false, checkpoint: now.addingTimeInterval(-10_000)),
+                header(workspace: "shift-b", unfinished: true, checkpoint: now.addingTimeInterval(-40))
+            ],
+            now: now
+        )
+        XCTAssertEqual(state, .working)
+    }
+
+    private func activity(_ headers: [ComposerChatHeader]) -> AttentionState? {
+        ComposerActivity.state(
+            matching: "index.html — cursor-stack — Cursor",
+            workspaces: workspaces,
+            headers: headers,
+            now: now
+        )
+    }
+
+    private func header(
+        workspace: String,
+        blocking: Bool = false,
+        unfinished: Bool = false,
+        checkpoint: Date? = nil,
+        updated: Date? = nil
+    ) -> ComposerChatHeader {
+        ComposerChatHeader(
+            workspaceID: workspace,
+            blocking: blocking,
+            hasUnfinishedRun: unfinished,
+            checkpoint: checkpoint,
+            updated: updated
+        )
     }
 }
 

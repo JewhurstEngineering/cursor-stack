@@ -41,6 +41,7 @@
 		A8D5E06F18BD1087E32EA661 /* WindowOrderDropDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC3845EA1ADD597F876D5CAB /* WindowOrderDropDelegate.swift */; };
 		A98108058AE60F74052F6AB2 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96018878312F3F1148C41D30 /* AppDelegate.swift */; };
 		AE185F1D7E5BDA37C9F40CB7 /* AttentionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEE45FF35F7D641669E924D6 /* AttentionCoordinator.swift */; };
+		C0A1B2C3D4E5F60718293A4B /* ComposerActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0A1B2C3D4E5F60718293A4C /* ComposerActivity.swift */; };
 		B0044856EB28162A0B35F005 /* HotKeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB92254950672B8DF0B2999F /* HotKeyManager.swift */; };
 		B1EA5BE6E081E1B1634E376B /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F62142CD1CFBE2CF8EC85CB /* Logger.swift */; };
 		B778B52EB4178AA846C0A4CC /* Branding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71B13E44672A6091DB3592D6 /* Branding.swift */; };
@@ -94,6 +95,7 @@
 		9F62142CD1CFBE2CF8EC85CB /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
 		A0111556DA884AF0F1AFCEA4 /* WindowMatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowMatcher.swift; sourceTree = "<group>"; };
 		AEE45FF35F7D641669E924D6 /* AttentionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttentionCoordinator.swift; sourceTree = "<group>"; };
+		C0A1B2C3D4E5F60718293A4C /* ComposerActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComposerActivity.swift; sourceTree = "<group>"; };
 		BA93F0FE5D4BC6A98DDF9DED /* WindowPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowPickerView.swift; sourceTree = "<group>"; };
 		BD8CF37849C5C72C5FDB0BF1 /* AppSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsStore.swift; sourceTree = "<group>"; };
 		BFEE76F750902926AF54EB11 /* GroupOrganizerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupOrganizerView.swift; sourceTree = "<group>"; };
@@ -282,6 +284,7 @@
 			isa = PBXGroup;
 			children = (
 				AEE45FF35F7D641669E924D6 /* AttentionCoordinator.swift */,
+				C0A1B2C3D4E5F60718293A4C /* ComposerActivity.swift */,
 				92A73AD7BBF82A594671DEC3 /* VisualAttentionProvider.swift */,
 			);
 			path = Attention;
@@ -396,6 +399,7 @@
 				EC82E26887B19CF54146E3D5 /* AppSettingsStore.swift in Sources */,
 				F8864B751CD9A55003349972 /* ApplicationController.swift in Sources */,
 				AE185F1D7E5BDA37C9F40CB7 /* AttentionCoordinator.swift in Sources */,
+				C0A1B2C3D4E5F60718293A4B /* ComposerActivity.swift in Sources */,
 				B778B52EB4178AA846C0A4CC /* Branding.swift in Sources */,
 				5D63FA4D9E4A34C1B3F8E272 /* CursorDiscoveryService.swift in Sources */,
 				75B3373867B3FFBC6C6FCF0A /* Debouncer.swift in Sources */,

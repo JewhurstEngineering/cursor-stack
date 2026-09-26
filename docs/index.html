@@ -101,12 +101,9 @@
         </div>
 
         <figure class="reveal mt-10 min-w-0">
-          <picture>
-            <source media="(max-width: 639px)" srcset="images/strip-mobile.jpg">
-            <img src="images/strip-zoom.jpg" width="1290" height="66" alt="The CursorStack tab strip on a Cursor window, with project tabs and the active project highlighted" class="w-full rounded-t-xl border border-b-0 border-accent/50">
-          </picture>
-          <div class="overflow-hidden rounded-b-xl border border-border/80">
-            <img src="images/tab-strip.jpg" width="1024" height="349" alt="The same strip on a real Cursor window, with the Add menu open" class="-mt-[2.15%] w-full">
+          
+          <div class="rounded-b-xl border border-border/80">
+            <img src="images/tab-strip.jpg" width="auto" height="auto" alt="The same strip on a real Cursor window, with the Add menu open" class="-mt-[2.15%] w-full">
           </div>
           <figcaption class="mt-4 max-w-3xl text-sm text-muted-foreground">Many projects, one strip, sitting on your real Cursor window. Add a window or manage the stack from the menu on the right.</figcaption>
         </figure>
@@ -130,7 +127,7 @@
             <li class="rounded-xl border border-border/80 bg-card p-6">
               <svg aria-hidden="true" viewBox="0 0 24 24" class="h-6 w-6 text-accent" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 7 3 9H3c0-2 3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
               <h3 class="mt-4 font-mono text-lg">See which project needs you</h3>
-              <p class="mt-2 text-muted-foreground">An attention mark shows up on a tab when that window looks busy. Notifications are optional.</p>
+              <p class="mt-2 text-muted-foreground">A mark shows on a tab while a chat in that window is running, and a stronger one when that chat is waiting on you. Notifications are optional.</p>
             </li>
           </ul>
         </div>
@@ -200,6 +197,7 @@
             <h2 class="font-mono text-2xl font-medium">What it never does</h2>
             <ul class="mt-6 space-y-3">
               <li>Read your source code</li>
+              <li>Read your chat messages</li>
               <li>Modify Cursor</li>
               <li>Upload window contents</li>
               <li>Ask you to make an account</li>

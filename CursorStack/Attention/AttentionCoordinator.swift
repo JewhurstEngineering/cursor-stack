@@ -13,6 +13,10 @@ protocol AttentionSignalProvider: AnyObject {
 final class AccessibilityAttentionProvider: AttentionSignalProvider {
     var onStateChanged: ((UUID, AttentionObservation) -> Void)?
     private var monitored = Set<UUID>()
+    private var regions: [UUID: AXUIElement] = [:]
+    private var retryAfter: [UUID: Date] = [:]
+    private var enhancedPIDs = Set<pid_t>()
+    private var didRelocateThisCycle = false
 
     func startMonitoring(window: ManagedCursorWindow) {
         monitored.insert(window.id)
@@ -20,38 +24,76 @@ final class AccessibilityAttentionProvider: AttentionSignalProvider {
 
     func stopMonitoring(window: ManagedCursorWindow) {
         monitored.remove(window.id)
+        regions[window.id] = nil
+        retryAfter[window.id] = nil
+    }
+
+    @discardableResult
+    private func enableChatAccessibility(pid: pid_t) -> Bool {
+        guard enhancedPIDs.insert(pid).inserted else { return false }
+        let app = AXUIElementCreateApplication(pid)
+        AXUIElementSetAttributeValue(app, "AXEnhancedUserInterface" as CFString, kCFBooleanTrue)
+        AXUIElementSetAttributeValue(app, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+        return true
+    }
+
+    func beginCycle() {
+        didRelocateThisCycle = false
     }
 
     func poll(window: ManagedCursorWindow) -> AttentionObservation? {
         guard monitored.contains(window.id) else { return nil }
-        let hints = AXTreeInspector.collectAttentionHints(from: window.element)
-        if CSLog.debugEnabled {
-            CSLog.attention.debug("AX hints for \(window.displayName, privacy: .public): \(hints.joined(separator: " | "), privacy: .public)")
+        let justEnabled = enableChatAccessibility(pid: window.pid)
+        if let region = regions[window.id], ChatControlScanner.isAlive(region) {
+            return publish(Self.observation(from: ChatControlScanner.readLabels(in: region)), for: window)
         }
-        let observation = Self.interpret(hints: hints, title: window.title)
+        regions[window.id] = nil
+
+        if !justEnabled, let retry = retryAfter[window.id], retry > Date() {
+            return publish(Self.unreadable(), for: window)
+        }
+        guard !didRelocateThisCycle else {
+            return publish(Self.unreadable(), for: window)
+        }
+        didRelocateThisCycle = true
+
+        guard let located = ChatControlScanner.locateRegion(in: window.element) else {
+            retryAfter[window.id] = Date().addingTimeInterval(20)
+            return publish(Self.unreadable(), for: window)
+        }
+        retryAfter[window.id] = nil
+        regions[window.id] = located.region
+        return publish(Self.observation(from: located.read), for: window)
+    }
+
+    nonisolated static func interpret(labels: [String], regionReadable: Bool) -> AttentionObservation {
+        if labels.contains(where: { ChatControlLabel.classify($0) == .attention }) {
+            return AttentionObservation(state: .attention, confidence: 0.9, source: .accessibility)
+        }
+        if labels.contains(where: { ChatControlLabel.classify($0) == .working }) {
+            return AttentionObservation(state: .working, confidence: 0.85, source: .accessibility)
+        }
+        if regionReadable {
+            return AttentionObservation(state: .idle, confidence: 0.8, source: .accessibility)
+        }
+        return unreadable()
+    }
+
+    private func publish(_ observation: AttentionObservation, for window: ManagedCursorWindow) -> AttentionObservation {
+        if CSLog.debugEnabled {
+            CSLog.attention.debug("chat control \(window.displayName, privacy: .public): \(observation.state.rawValue, privacy: .public)")
+        }
         onStateChanged?(window.id, observation)
         return observation
     }
 
-    nonisolated static func interpret(hints: [String], title: String) -> AttentionObservation {
-        let blob = (hints.joined(separator: " ") + " " + title).lowercased()
-        if blob.contains("error") || blob.contains("failed") {
-            return AttentionObservation(state: .error, confidence: 0.6, source: .accessibility)
-        }
-        if blob.contains("unread")
-            || blob.contains("needs")
-            || blob.contains("waiting")
-            || blob.contains("action required")
-            || blob.contains("keep") && blob.contains("undo") {
-            return AttentionObservation(state: .attention, confidence: 0.75, source: .accessibility)
-        }
-        if blob.contains("stop generating") || blob.contains("generating") || (blob.contains("agent") && blob.contains("running")) {
-            return AttentionObservation(state: .working, confidence: 0.5, source: .accessibility)
-        }
-        if blob.contains("complete") || blob.contains("finished") {
-            return AttentionObservation(state: .completed, confidence: 0.4, source: .accessibility)
-        }
-        return AttentionObservation(state: .unknown, confidence: 0.1, source: .accessibility)
+    private nonisolated static func observation(from read: ChatControlScanner.Read) -> AttentionObservation {
+        let activity = read.labels.contains { ChatControlLabel.classify($0) != nil }
+        return interpret(labels: read.labels, regionReadable: read.finished || activity)
+    }
+
+    private nonisolated static func unreadable() -> AttentionObservation {
+        AttentionObservation(state: .unknown, confidence: 0.1, source: .accessibility)
     }
 }
 
@@ -59,35 +101,24 @@ final class AccessibilityAttentionProvider: AttentionSignalProvider {
 final class WindowMetadataAttentionProvider: AttentionSignalProvider {
     var onStateChanged: ((UUID, AttentionObservation) -> Void)?
     private var monitored = Set<UUID>()
-    private var lastTitles: [UUID: String] = [:]
 
     func startMonitoring(window: ManagedCursorWindow) {
         monitored.insert(window.id)
-        lastTitles[window.id] = window.title
     }
 
     func stopMonitoring(window: ManagedCursorWindow) {
         monitored.remove(window.id)
-        lastTitles[window.id] = nil
     }
 
     func poll(window: ManagedCursorWindow) -> AttentionObservation? {
         guard monitored.contains(window.id) else { return nil }
-        let previous = lastTitles[window.id]
-        lastTitles[window.id] = window.title
-        var observation = Self.interpret(title: window.title)
-        if let previous, previous != window.title, observation.state == .attention {
-            observation.confidence = min(1, observation.confidence + 0.15)
-        }
+        let observation = Self.interpret(title: window.title)
         onStateChanged?(window.id, observation)
         return observation
     }
 
     nonisolated static func interpret(title: String) -> AttentionObservation {
-        let lower = title.lowercased()
-        if title.contains("●") || title.contains("•") || lower.contains("(1)") || lower.contains("unread") {
-            return AttentionObservation(state: .attention, confidence: 0.55, source: .metadata)
-        }
+        _ = title
         return AttentionObservation(state: .unknown, confidence: 0.05, source: .metadata)
     }
 }
@@ -99,6 +130,8 @@ final class AttentionCoordinator: ObservableObject {
     private let accessibilityProvider = AccessibilityAttentionProvider()
     private let metadataProvider = WindowMetadataAttentionProvider()
     private let visualProvider = VisualAttentionProvider()
+    private let composerReader = ComposerActivityReader()
+    private var composerReadInFlight = false
     private var tracking: [UUID: AttentionTrackingState] = [:]
     private var monitoredWindows: [UUID: ManagedCursorWindow] = [:]
 
@@ -157,29 +190,44 @@ final class AttentionCoordinator: ObservableObject {
 
     func poll(selectedWindowID: UUID?) {
         guard settings.detectAttention else { return }
+        guard !composerReadInFlight else { return }
+        composerReadInFlight = true
+        let selected = selectedWindowID
+        composerReader.load { [weak self] snapshot in
+            guard let self else { return }
+            self.composerReadInFlight = false
+            self.apply(snapshot, selectedWindowID: selected)
+        }
+    }
+
+    private func apply(_ snapshot: ComposerActivitySnapshot, selectedWindowID: UUID?) {
+        accessibilityProvider.beginCycle()
         for window in monitoredWindows.values {
-            _ = metadataProvider.poll(window: window)
-            let isSelected = window.id == selectedWindowID
-            if !isSelected {
-                _ = accessibilityProvider.poll(window: window)
+            if snapshot.readable, let state = ComposerActivity.state(
+                matching: window.title,
+                workspaces: snapshot.workspaces,
+                headers: snapshot.headers
+            ) {
+                if CSLog.debugEnabled {
+                    CSLog.attention.debug("composer \(window.displayName, privacy: .public): \(state.rawValue, privacy: .public)")
+                }
+                handle(windowID: window.id, observation: AttentionObservation(
+                    state: state,
+                    confidence: 0.9,
+                    source: .composer
+                ))
+                continue
             }
-            if settings.enableVisualDetection, !isSelected {
+            _ = accessibilityProvider.poll(window: window)
+            if settings.enableVisualDetection, window.id != selectedWindowID {
                 _ = visualProvider.poll(window: window)
             }
         }
     }
 
     func markViewedIfAppropriate(_ window: ManagedCursorWindow) {
-        if window.attentionState == .attention || window.attentionState == .error {
-            // Edge-triggered providers cannot confirm the underlying signal disappeared.
-            window.attentionState = .idle
-            states[window.id] = .idle
-            var current = tracking[window.id] ?? AttentionTrackingState()
-            current.currentState = .idle
-            current.lastNotifiedState = nil
-            tracking[window.id] = current
-            window.objectWillChange.send()
-        }
+        // The tab mark follows the live chat control, including after this window is selected.
+        _ = window
     }
 
     private func handle(windowID: UUID, observation: AttentionObservation) {
@@ -190,6 +238,9 @@ final class AttentionCoordinator: ObservableObject {
             return
         }
         if observation.confidence < 0.4, observation.state != .attention, observation.state != .error {
+            return
+        }
+        if states[windowID] == observation.state {
             return
         }
 

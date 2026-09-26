@@ -502,13 +502,13 @@ struct SettingsView: View {
             SettingsCard(title: "Detection", symbol: "sparkle.magnifyingglass") {
                 SettingsToggleRow(
                     title: "Detect when Cursor needs you",
-                    detail: "Looks for waiting, completed, and error states in each Cursor window.",
+                    detail: "Reads Cursor's local chat status for each grouped window. Message text stays unread.",
                     isOn: settings.detectAttention
                 )
                 Divider()
                 SettingsToggleRow(
                     title: "Show a dot on the tab",
-                    detail: "Marks the project that needs attention.",
+                    detail: "A mark while a chat is running, and a stronger one when it is waiting on you.",
                     isOn: settings.showTabIndicator
                 )
                 .disabled(!settingsStore.settings.detectAttention)
@@ -518,7 +518,7 @@ struct SettingsView: View {
             SettingsCard(title: "Notifications", symbol: "bell.badge") {
                 SettingsToggleRow(
                     title: "Send a macOS notification",
-                    detail: "Notifies you when a background Cursor project needs attention.",
+                    detail: "Notifies you when a chat in a background window is waiting on you.",
                     isOn: settings.sendNotifications
                 )
                 Divider()
@@ -646,7 +646,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
         case .general: "Choose when CursorStack runs and where it appears."
         case .tabs: "Control how your Cursor projects look in the stack bar."
         case .shortcuts: "Move between projects without reaching for the mouse."
-        case .attention: "Decide how CursorStack tells you a project is waiting."
+        case .attention: "Decide how CursorStack tells you a chat is running or waiting."
         case .advanced: "Troubleshoot window detection and manage saved data."
         }
     }

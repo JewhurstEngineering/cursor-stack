@@ -216,9 +216,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(groupItem)
 
         for window in group.windows {
-            let title = window.attentionState.showsTabDot
-                ? "● \(window.displayName)"
-                : window.displayName
+            let title = window.attentionState.statusPrefix + window.displayName
             let item = NSMenuItem(
                 title: title,
                 action: #selector(activateWindowFromGroupMenu(_:)),
