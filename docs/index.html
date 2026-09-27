@@ -3,11 +3,51 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CursorStack — Your Cursor projects, one tab away</title>
-<meta name="description" content="CursorStack puts one tab strip on your Cursor windows on macOS and shows which agent is waiting on you. Nothing is uploaded. No account.">
+<title>CursorStack — Tabs for your Cursor windows on macOS</title>
+<meta name="description" content="Free, open-source Mac app that groups your Cursor windows under one tab strip and shows which AI agent is waiting on you. No account, nothing uploaded.">
 <link rel="canonical" href="https://cursorstack.app/">
+<meta name="robots" content="index, follow, max-image-preview:large">
 <meta name="theme-color" content="#e9eef6">
-<link rel="icon" href="favicon.png" type="image/png">
+<link rel="icon" href="favicon.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CursorStack">
+<meta property="og:url" content="https://cursorstack.app/">
+<meta property="og:title" content="CursorStack — Tabs for your Cursor windows on macOS">
+<meta property="og:description" content="One tab strip on your Cursor windows, and an amber dot on the one whose agent is waiting on you. Free and open source.">
+<meta property="og:image" content="https://cursorstack.app/images/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="CursorStack: one strip, every project. A tab strip with web, billing-api, ios-app, infra, and docs-site tabs.">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="CursorStack — Tabs for your Cursor windows on macOS">
+<meta name="twitter:description" content="One tab strip on your Cursor windows, and an amber dot on the one whose agent is waiting on you. Free and open source.">
+<meta name="twitter:image" content="https://cursorstack.app/images/og.png">
+<meta name="twitter:image:alt" content="CursorStack: one strip, every project.">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "CursorStack",
+  "url": "https://cursorstack.app/",
+  "description": "A macOS app that groups Cursor windows under one tab strip and shows which AI agent chat is running or waiting on you.",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "macOS 14 or later",
+  "processorRequirements": "Apple silicon",
+  "softwareVersion": "1.0.9",
+  "downloadUrl": "https://github.com/JewhurstEngineering/cursor-stack/releases/latest/download/CursorStack-1.0.9.zip",
+  "image": "https://cursorstack.app/images/og.png",
+  "screenshot": "https://cursorstack.app/images/settings.jpg",
+  "isAccessibleForFree": true,
+  "license": "https://opensource.org/licenses/MIT",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "author": { "@type": "Person", "name": "James Jewhurst" },
+  "sameAs": ["https://github.com/JewhurstEngineering/cursor-stack"]
+}
+</script>
 <script>document.documentElement.classList.replace("no-js", "js")</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -157,7 +197,7 @@
   <div class="stage" id="stage">
     <div class="copy wrap" id="copy"><div class="grid">
       <div class="state before" id="before">
-        <h1>Seven Cursor windows. Which one is waiting?</h1>
+        <h1>Multiple Cursor windows. Which one is waiting?</h1>
         <p>Every project gets its own window, and macOS treats each one as a stranger.</p>
       </div>
       <div class="state after" id="after">
@@ -226,9 +266,9 @@
   <h2 class="big">The real app.</h2>
   <p class="sub">Settings, the tab menu, and the group menu, as they look on a Mac today.</p>
   <div class="shots">
-    <figure class="big"><img src="images/settings.jpg" width="877" height="745" alt="CursorStack Settings showing install status and Accessibility connected"><figcaption>Install, check for a signed update, and choose where the app shows.</figcaption></figure>
-    <figure><img src="images/tab-menu.jpg" width="689" height="275" alt="Right-click menu on a tab"><figcaption>Right-click a tab to move it, rename it, or pull it out.</figcaption></figure>
-    <figure><img src="images/group-menu.jpg" width="415" height="302" alt="Group menu listing projects" style="max-width:420px"><figcaption>The Group menu lists the stack you’re in.</figcaption></figure>
+    <figure class="big"><img loading="lazy" decoding="async" src="images/settings.jpg" width="877" height="745" alt="CursorStack Settings showing install status and Accessibility connected"><figcaption>Install, check for a signed update, and choose where the app shows.</figcaption></figure>
+    <figure><img loading="lazy" decoding="async" src="images/tab-menu.jpg" width="689" height="275" alt="Right-click menu on a tab"><figcaption>Right-click a tab to move it, rename it, or pull it out.</figcaption></figure>
+    <figure><img loading="lazy" decoding="async" src="images/group-menu.jpg" width="415" height="302" alt="Group menu listing projects" style="max-width:420px"><figcaption>The Group menu lists the stack you’re in.</figcaption></figure>
   </div>
   <div class="rows" style="margin-top:72px">
     <div><span>macOS</span><span>14 or newer, Apple silicon</span></div>
