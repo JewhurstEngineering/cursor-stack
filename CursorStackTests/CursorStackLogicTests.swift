@@ -21,6 +21,17 @@ final class WindowTitleParserTests: XCTestCase {
         )
     }
 
+    func testDisplayNameIgnoresModifiedSuffix() {
+        XCTAssertEqual(
+            WindowTitleParser.projectDisplayName(from: "declined-work-and-recommendations.md — shift-sms-ts — Modified"),
+            "shift-sms-ts"
+        )
+        XCTAssertEqual(
+            WindowTitleParser.projectDisplayName(from: "● App.swift — cursor-stack — Modified"),
+            "cursor-stack"
+        )
+    }
+
     func testProjectTokenIgnoresModifiedSuffix() {
         XCTAssertEqual(
             WindowTitleParser.projectToken(from: "declined-work-and-recommendations.md — shift-sms-ts — Modified"),
