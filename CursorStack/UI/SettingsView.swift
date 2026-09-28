@@ -230,6 +230,9 @@ struct SettingsView: View {
                 ) {
                     AppDelegate.shared?.checkForUpdates(nil)
                 }
+                Text("Built by Jewhurst Engineering")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             SettingsCard(title: "Startup", symbol: "power") {

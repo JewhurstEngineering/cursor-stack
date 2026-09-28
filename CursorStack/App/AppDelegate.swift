@@ -34,7 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc func showAbout() {
         let credits = NSAttributedString(
-            string: "Groups Cursor windows into a tabbed stack.",
+            string: "Groups Cursor windows into a tabbed stack.\nBuilt by Jewhurst Engineering.",
             attributes: [
                 .font: NSFont.systemFont(ofSize: 11),
                 .foregroundColor: NSColor.secondaryLabelColor

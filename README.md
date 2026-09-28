@@ -1,4 +1,6 @@
-# JamesWare CursorStack
+# CursorStack
+
+Built by [Jewhurst Engineering](https://github.com/JewhurstEngineering).
 
 <p align="center">
   <img src="images/cursorstack-logo-full-color.png" alt="CursorStack" width="520">
