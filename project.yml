@@ -1,6 +1,6 @@
 name: CursorStack
 options:
-  bundleIdPrefix: dev.jamesware
+  bundleIdPrefix: dev.jewhurst
   deploymentTarget:
     macOS: "14.0"
   createIntermediateGroups: true
@@ -62,7 +62,7 @@ targets:
       path: CursorStack/CursorStack.entitlements
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: dev.jamesware.CursorStack
+        PRODUCT_BUNDLE_IDENTIFIER: dev.jewhurst.CursorStack
         PRODUCT_NAME: CursorStack
         INFOPLIST_FILE: CursorStack/Info.plist
         CODE_SIGN_ENTITLEMENTS: CursorStack/CursorStack.entitlements
@@ -81,7 +81,7 @@ targets:
       - target: CursorStack
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: dev.jamesware.CursorStackTests
+        PRODUCT_BUNDLE_IDENTIFIER: dev.jewhurst.CursorStackTests
         GENERATE_INFOPLIST_FILE: YES
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/CursorStack.app/Contents/MacOS/CursorStack"
         BUNDLE_LOADER: "$(TEST_HOST)"

@@ -22,6 +22,11 @@ enum AttentionState: String, Codable, Equatable, CaseIterable {
         if showsWorkingIndicator { return "○ " }
         return ""
     }
+
+    /// Cursor's mark first, then the Claude spark when that session is busy in the same window.
+    static func menuPrefix(attention: AttentionState, claudeBusy: Bool) -> String {
+        attention.statusPrefix + (claudeBusy ? "✶ " : "")
+    }
 }
 
 enum AttentionSource: String, Codable {

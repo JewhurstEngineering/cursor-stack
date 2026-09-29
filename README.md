@@ -109,6 +109,10 @@ These global shortcuts can be changed under **Settings → Shortcuts**. CursorSt
 
 CursorStack is an independent open-source project and is not affiliated with, endorsed by, or sponsored by Anysphere or Cursor. Cursor is a trademark of its respective owner.
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for a local build with your own signing team, tests, and what not to change in a pull request. The Release script in Build from source is for maintainers.
+
 ## License
 
 [MIT](LICENSE)

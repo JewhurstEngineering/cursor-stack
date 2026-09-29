@@ -131,7 +131,9 @@ final class AttentionCoordinator: ObservableObject {
     private let metadataProvider = WindowMetadataAttentionProvider()
     private let visualProvider = VisualAttentionProvider()
     private let composerReader = ComposerActivityReader()
+    private let claudeReader = ClaudeCodeActivityReader()
     private var composerReadInFlight = false
+    private var claudeReadInFlight = false
     private var finishedChats = Set<UUID>()
     private var tracking: [UUID: AttentionTrackingState] = [:]
     private var monitoredWindows: [UUID: ManagedCursorWindow] = [:]
@@ -190,7 +192,15 @@ final class AttentionCoordinator: ObservableObject {
     }
 
     func poll(selectedWindowID: UUID?) {
-        guard settings.detectAttention else { return }
+        guard settings.detectAttention else {
+            clearClaudeBusy()
+            return
+        }
+        pollComposer(selectedWindowID: selectedWindowID)
+        pollClaude()
+    }
+
+    private func pollComposer(selectedWindowID: UUID?) {
         guard !composerReadInFlight else { return }
         composerReadInFlight = true
         let selected = selectedWindowID
@@ -198,6 +208,36 @@ final class AttentionCoordinator: ObservableObject {
             guard let self else { return }
             self.composerReadInFlight = false
             self.apply(snapshot, selectedWindowID: selected)
+        }
+    }
+
+    private func pollClaude() {
+        guard !claudeReadInFlight else { return }
+        claudeReadInFlight = true
+        claudeReader.load { [weak self] snapshot in
+            guard let self else { return }
+            self.claudeReadInFlight = false
+            self.applyClaude(snapshot)
+        }
+    }
+
+    private func applyClaude(_ snapshot: ClaudeCodeSnapshot) {
+        guard snapshot.readable else { return }
+        for window in monitoredWindows.values {
+            let busy = ClaudeCodeActivity.matches(title: window.title, sessions: snapshot.sessions)
+            guard window.claudeBusy != busy else { continue }
+            window.claudeBusy = busy
+            window.objectWillChange.send()
+            if CSLog.debugEnabled {
+                CSLog.attention.debug("claude \(window.displayName, privacy: .public): \(busy ? "busy" : "idle", privacy: .public)")
+            }
+        }
+    }
+
+    private func clearClaudeBusy() {
+        for window in monitoredWindows.values where window.claudeBusy {
+            window.claudeBusy = false
+            window.objectWillChange.send()
         }
     }
 

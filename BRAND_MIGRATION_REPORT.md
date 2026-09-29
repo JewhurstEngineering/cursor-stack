@@ -1,34 +1,33 @@
 # Brand migration report
 
-CursorStack stays CursorStack. The current public maker identity is Jewhurst Engineering. JamesWare is no longer used as the maker of this app or of cursorstack.app.
+CursorStack stays CursorStack. The maker identity is Jewhurst Engineering. The bundle id is `dev.jewhurst.CursorStack`.
 
 ## References found
 
 ### Active public branding
 
-- `README.md` title was `# JamesWare CursorStack`.
+- The README title used to prefix the product with the retired maker name. It is now `# CursorStack`.
 - About credits, Settings, the site footer, the 404 page, and structured data had no maker line. Copyright read `Copyright © 2026 James Jewhurst`.
 
 ### Historical content
 
-- `CursorStack-PRD.md` uses JamesWare and `jamesware.dev` as example window and group names in design sketches. Those describe a user’s projects, not the app’s maker.
+- `CursorStack-PRD.md` example windows and groups now use Workbench and `jewhurst.dev`.
 
-### Stable technical identifiers
+### Identifiers
 
-- Bundle IDs `dev.jamesware.CursorStack` and `dev.jamesware.CursorStackTests`.
-- Logger subsystem `dev.jamesware.CursorStack` and the composer queue label that uses the same prefix.
-- Apple signing identities, which name James Jewhurst because that is the certificate subject.
-- Unit-test window titles such as `jamesware-ai-meter`, used as parser fixtures.
+- Bundle ids are `dev.jewhurst.CursorStack` and `dev.jewhurst.CursorStackTests`.
+- The logger subsystem and composer queue label use that same bundle id.
+- Apple signing identities still name James Jewhurst, because that is the certificate subject.
+- Parser fixtures use ordinary project names such as `ai-meter`.
 
 ### URLs
 
 - Product site, canonicals, and Open Graph stay on `https://cursorstack.app/`.
 - Downloads and the Sparkle feed stay on `https://github.com/JewhurstEngineering/cursor-stack`.
-- This repo has no `jamesware.dev` links to remove.
 
 ### Assets
 
-- Logos, app icon, favicon, and screenshots say CursorStack. None incorporate JamesWare.
+- Logos, app icon, favicon, and screenshots say CursorStack.
 
 ### Generated or vendor content
 
@@ -42,22 +41,21 @@ CursorStack stays CursorStack. The current public maker identity is Jewhurst Eng
 - Settings → Updates shows the same maker line under the version row.
 - `docs/index.html` footer and `docs/404.html` use the same line, linked to `https://github.com/JewhurstEngineering`.
 - JSON-LD `author` is an Organization named Jewhurst Engineering, with that same URL.
+- The bundle id, log subsystem, queue label, and tests moved to `dev.jewhurst.CursorStack`.
 
 ## Intentionally unchanged
 
-- Product name, bundle IDs, signing identities, Sparkle feed, and repository slug. Renaming the bundle ID would break updates and the existing Accessibility grant.
-- Log subsystem and queue labels, because they match the bundle ID.
-- Test fixtures and the historical examples in `CursorStack-PRD.md`.
+- Product name, signing identities, Sparkle feed, and repository slug.
 - `cursorstack.app` as the live product site. Downloads, canonicals, and the update feed were not moved.
-- The unrelated `project.pbxproj` identifier churn already in the working tree.
+- Saved groups and settings, which live in `~/Library/Application Support/CursorStack/` rather than under the bundle id.
 
 ## Redirect dependencies
 
-`https://jewhurst.dev/cursor-stack` is the intended workshop page and is not the live product URL yet. Maker links point at `https://github.com/JewhurstEngineering` until that page exists. This repo does not own a `jamesware.dev` redirect.
+`https://jewhurst.dev/cursor-stack` is the intended workshop page and is not the live product URL yet. Maker links point at `https://github.com/JewhurstEngineering` until that page exists.
 
 ## Assets still needed
 
-None for this repo. No JamesWare logo or screenshot had to be replaced.
+None for this repo.
 
 ## Verification performed
 

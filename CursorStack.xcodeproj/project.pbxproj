@@ -28,6 +28,7 @@
 		6EAB49294CBF2375E002C529 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 950858CEBA0AEB2340B82DF8 /* SettingsView.swift */; };
 		70C2C7ECDD30D897D5C66A6A /* GroupStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D1C4DE45A1E3F39856257E0 /* GroupStore.swift */; };
 		74C455EAA28B205B8559F5DE /* ComposerActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2D37C821FAD403EEB53803 /* ComposerActivity.swift */; };
+		B2D1EF22C3D4E5F60718293A /* ClaudeCodeActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0DE11B2C3D4E5F6071829 /* ClaudeCodeActivity.swift */; };
 		75B3373867B3FFBC6C6FCF0A /* Debouncer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AB0E05867DC7B74DA7211B2 /* Debouncer.swift */; };
 		7711FF26B2496B00D1BBCC82 /* ScreenCoordinateConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 539F664BCE319DF0684772A3 /* ScreenCoordinateConverter.swift */; };
 		7F7DC861B43AA7CB970816B2 /* AXHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE644E02EC835854B78448DB /* AXHelpers.swift */; };
@@ -78,6 +79,7 @@
 		539F664BCE319DF0684772A3 /* ScreenCoordinateConverter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCoordinateConverter.swift; sourceTree = "<group>"; };
 		5BCC2AE6D5285784433141C2 /* AccessibilityPermissionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityPermissionManager.swift; sourceTree = "<group>"; };
 		5E2D37C821FAD403EEB53803 /* ComposerActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComposerActivity.swift; sourceTree = "<group>"; };
+		A1C0DE11B2C3D4E5F6071829 /* ClaudeCodeActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeCodeActivity.swift; sourceTree = "<group>"; };
 		611F12616D6FB54C0EA63970 /* AXObserverManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AXObserverManager.swift; sourceTree = "<group>"; };
 		6C456C35BFEE49015680B3CF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		6FBDCBD096A05D7459874843 /* WindowTitleParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowTitleParser.swift; sourceTree = "<group>"; };
@@ -284,6 +286,7 @@
 			isa = PBXGroup;
 			children = (
 				AEE45FF35F7D641669E924D6 /* AttentionCoordinator.swift */,
+				A1C0DE11B2C3D4E5F6071829 /* ClaudeCodeActivity.swift */,
 				5E2D37C821FAD403EEB53803 /* ComposerActivity.swift */,
 				92A73AD7BBF82A594671DEC3 /* VisualAttentionProvider.swift */,
 			);
@@ -400,6 +403,7 @@
 				F8864B751CD9A55003349972 /* ApplicationController.swift in Sources */,
 				AE185F1D7E5BDA37C9F40CB7 /* AttentionCoordinator.swift in Sources */,
 				B778B52EB4178AA846C0A4CC /* Branding.swift in Sources */,
+				B2D1EF22C3D4E5F60718293A /* ClaudeCodeActivity.swift in Sources */,
 				74C455EAA28B205B8559F5DE /* ComposerActivity.swift in Sources */,
 				5D63FA4D9E4A34C1B3F8E272 /* CursorDiscoveryService.swift in Sources */,
 				75B3373867B3FFBC6C6FCF0A /* Debouncer.swift in Sources */,
@@ -464,7 +468,7 @@
 					"@loader_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.jamesware.CursorStackTests;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.jewhurst.CursorStackTests;
 				SDKROOT = macosx;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CursorStack.app/Contents/MacOS/CursorStack";
 			};
@@ -483,7 +487,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = dev.jamesware.CursorStack;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.jewhurst.CursorStack;
 				PRODUCT_NAME = CursorStack;
 				SDKROOT = macosx;
 			};
@@ -501,7 +505,7 @@
 					"@loader_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.jamesware.CursorStackTests;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.jewhurst.CursorStackTests;
 				SDKROOT = macosx;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CursorStack.app/Contents/MacOS/CursorStack";
 			};
@@ -655,7 +659,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = dev.jamesware.CursorStack;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.jewhurst.CursorStack;
 				PRODUCT_NAME = CursorStack;
 				SDKROOT = macosx;
 			};

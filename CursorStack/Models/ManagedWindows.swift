@@ -15,6 +15,7 @@ final class ManagedCursorWindow: ObservableObject, Identifiable {
     @Published var isClosed: Bool
     @Published var isUnavailable: Bool
     @Published var attentionState: AttentionState
+    @Published var claudeBusy: Bool
     @Published var isMain: Bool
     @Published var isFocused: Bool
 
@@ -35,6 +36,7 @@ final class ManagedCursorWindow: ObservableObject, Identifiable {
         self.isClosed = false
         self.isUnavailable = false
         self.attentionState = .unknown
+        self.claudeBusy = false
         self.isMain = snapshot.isMain
         self.isFocused = snapshot.isFocused
     }

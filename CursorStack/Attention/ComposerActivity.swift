@@ -89,7 +89,7 @@ enum FinishedChatSignal {
 }
 
 final class ComposerActivityReader: @unchecked Sendable {
-    private let queue = DispatchQueue(label: "dev.jamesware.CursorStack.composer", qos: .utility)
+    private let queue = DispatchQueue(label: "dev.jewhurst.CursorStack.composer", qos: .utility)
     private let databaseURL: URL
     private let workspaceStorageURL: URL
     private var folderCache: (at: Date, workspaces: [ComposerWorkspace])?

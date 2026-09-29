@@ -5,8 +5,8 @@ import ApplicationServices
 final class WindowTitleParserTests: XCTestCase {
     func testStripsCursorSuffixAndUsesProjectComponent() {
         XCTAssertEqual(
-            WindowTitleParser.projectDisplayName(from: "package.json — jamesware-ai-meter — Cursor"),
-            "jamesware-ai-meter"
+            WindowTitleParser.projectDisplayName(from: "package.json — ai-meter — Cursor"),
+            "ai-meter"
         )
     }
 
@@ -699,6 +699,92 @@ final class ComposerActivityTests: XCTestCase {
     }
 }
 
+final class ClaudeCodeActivityTests: XCTestCase {
+    private let now = Date(timeIntervalSince1970: 1_800_000_000)
+
+    func testBusyClaudeSessionMatchesTheProjectFolder() {
+        let session = session(folder: "ai-meter", status: "busy", updated: now.addingTimeInterval(-12))
+        XCTAssertTrue(ClaudeCodeActivity.matches(
+            title: "index.html — ai-meter — Cursor",
+            sessions: [session],
+            now: now
+        ))
+    }
+
+    func testStaleBusySessionDoesNotSpin() {
+        let session = session(folder: "ai-meter", status: "busy", updated: now.addingTimeInterval(-ComposerActivity.runningWindow - 5))
+        XCTAssertFalse(ClaudeCodeActivity.isBusy(session, now: now))
+        XCTAssertFalse(ClaudeCodeActivity.matches(
+            title: "index.html — ai-meter — Cursor",
+            sessions: [session],
+            now: now
+        ))
+    }
+
+    func testIdleSessionDoesNotMatch() {
+        let idle = session(folder: "ai-meter", status: "idle", updated: now.addingTimeInterval(-4))
+        XCTAssertFalse(ClaudeCodeActivity.isBusy(idle, now: now))
+        XCTAssertFalse(ClaudeCodeActivity.matches(
+            title: "index.html — ai-meter — Cursor",
+            sessions: [idle],
+            now: now
+        ))
+    }
+
+    func testParserKeepsCursorSessionsAndDropsTheTerminal() throws {
+        let fresh = Int(now.timeIntervalSince1970 * 1000)
+        let cursor = Data(#"{"entrypoint":"claude-vscode","cwd":"/Users/jewhurst/GitHub/projects/ai-meter","status":"busy","statusUpdatedAt":\#(fresh)}"#.utf8)
+        let terminal = Data(#"{"entrypoint":"cli","cwd":"/tmp/ai-meter","status":"busy","statusUpdatedAt":\#(fresh)}"#.utf8)
+        let parsed = try XCTUnwrap(ClaudeCodeActivity.session(from: cursor))
+        XCTAssertEqual(parsed.folderName, "ai-meter")
+        XCTAssertEqual(parsed.status, "busy")
+        XCTAssertNil(ClaudeCodeActivity.session(from: terminal))
+        XCTAssertTrue(ClaudeCodeActivity.isBusy(parsed, now: now))
+    }
+
+    func testReaderSkipsKeyFilesAndNonCursorEntrypoints() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("claude-code-activity-\(UUID().uuidString)", isDirectory: true)
+        let sessions = root.appendingPathComponent("sessions", isDirectory: true)
+        try FileManager.default.createDirectory(at: sessions, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let fresh = Int(now.timeIntervalSince1970 * 1000)
+        try Data(#"{"entrypoint":"claude-vscode","cwd":"/work/ai-meter","status":"busy","statusUpdatedAt":\#(fresh)}"#.utf8)
+            .write(to: sessions.appendingPathComponent("84806.json"))
+        try Data("secret".utf8).write(to: sessions.appendingPathComponent("84806.key"))
+        try Data(#"{"entrypoint":"cli","cwd":"/work/other","status":"busy","statusUpdatedAt":\#(fresh)}"#.utf8)
+            .write(to: sessions.appendingPathComponent("9.json"))
+
+        let reader = ClaudeCodeActivityReader(claudeDirectory: root)
+        let loaded = expectation(description: "claude sessions")
+        var snapshot = ClaudeCodeSnapshot.empty
+        reader.load { value in
+            snapshot = value
+            loaded.fulfill()
+        }
+        wait(for: [loaded], timeout: 2)
+
+        XCTAssertTrue(snapshot.readable)
+        XCTAssertEqual(snapshot.sessions.map(\.folderName), ["ai-meter"])
+        XCTAssertTrue(ClaudeCodeActivity.matches(
+            title: "notes.md — ai-meter — Cursor",
+            sessions: snapshot.sessions,
+            now: now
+        ))
+    }
+
+    func testMenuPrefixKeepsTheRingAndAddsTheSpark() {
+        XCTAssertEqual(AttentionState.menuPrefix(attention: .working, claudeBusy: false), "○ ")
+        XCTAssertEqual(AttentionState.menuPrefix(attention: .idle, claudeBusy: true), "✶ ")
+        XCTAssertEqual(AttentionState.menuPrefix(attention: .working, claudeBusy: true), "○ ✶ ")
+        XCTAssertEqual(AttentionState.menuPrefix(attention: .attention, claudeBusy: true), "● ✶ ")
+    }
+
+    private func session(folder: String, status: String, updated: Date?) -> ClaudeCodeSession {
+        ClaudeCodeSession(folderName: folder, status: status, statusUpdated: updated)
+    }
+}
+
 final class GroupMembershipPolicyTests: XCTestCase {
     func testParksAfterThreeMisses() {
         XCTAssertFalse(GroupMembershipPolicy.shouldParkAsUnresolved(consecutiveMisses: 2))
@@ -976,7 +1062,7 @@ final class CursorAppIdentityTests: XCTestCase {
                 localizedName: "Cursor",
                 bundleFileName: "Cursor.app",
                 activationPolicy: .regular,
-                excludingBundleID: "dev.jamesware.CursorStack"
+                excludingBundleID: "dev.jewhurst.CursorStack"
             )
         )
     }
@@ -988,7 +1074,7 @@ final class CursorAppIdentityTests: XCTestCase {
                 localizedName: "CursorUIViewService",
                 bundleFileName: "CursorUIViewService.xpc",
                 activationPolicy: .prohibited,
-                excludingBundleID: "dev.jamesware.CursorStack"
+                excludingBundleID: "dev.jewhurst.CursorStack"
             )
         )
     }
@@ -1000,7 +1086,7 @@ final class CursorAppIdentityTests: XCTestCase {
                 localizedName: "Cursor Helper: shared-process",
                 bundleFileName: "Cursor Helper.app",
                 activationPolicy: .accessory,
-                excludingBundleID: "dev.jamesware.CursorStack"
+                excludingBundleID: "dev.jewhurst.CursorStack"
             )
         )
     }
@@ -1008,11 +1094,11 @@ final class CursorAppIdentityTests: XCTestCase {
     func testIgnoresCursorStack() {
         XCTAssertFalse(
             CursorAppIdentity.matches(
-                bundleID: "dev.jamesware.CursorStack",
+                bundleID: "dev.jewhurst.CursorStack",
                 localizedName: "CursorStack",
                 bundleFileName: "CursorStack.app",
                 activationPolicy: .regular,
-                excludingBundleID: "dev.jamesware.CursorStack"
+                excludingBundleID: "dev.jewhurst.CursorStack"
             )
         )
     }
@@ -1024,7 +1110,7 @@ final class CursorAppIdentityTests: XCTestCase {
                 localizedName: "Cursor Nightly",
                 bundleFileName: "Cursor Nightly.app",
                 activationPolicy: .regular,
-                excludingBundleID: "dev.jamesware.CursorStack"
+                excludingBundleID: "dev.jewhurst.CursorStack"
             )
         )
     }

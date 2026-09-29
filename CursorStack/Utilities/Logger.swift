@@ -3,7 +3,7 @@ import os
 
 enum CSLog {
     static var debugEnabled = false
-    static let subsystem = "dev.jamesware.CursorStack"
+    static let subsystem = "dev.jewhurst.CursorStack"
 
     static let general = Logger(subsystem: subsystem, category: "general")
     static let ax = Logger(subsystem: subsystem, category: "accessibility")

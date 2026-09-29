@@ -505,13 +505,13 @@ struct SettingsView: View {
             SettingsCard(title: "Detection", symbol: "sparkle.magnifyingglass") {
                 SettingsToggleRow(
                     title: "Detect when Cursor needs you",
-                    detail: "Reads Cursor's local chat status for each grouped window. Message text stays unread.",
+                    detail: "Reads Cursor's local chat status, and whether Claude Code is running, for each grouped window. Message text stays unread.",
                     isOn: settings.detectAttention
                 )
                 Divider()
                 SettingsToggleRow(
                     title: "Show a dot on the tab",
-                    detail: "A ring while a chat is running. A dot when that chat finishes, or when it is waiting on you.",
+                    detail: "A ring while a Cursor chat is running. A spark while Claude Code is running. A dot when a Cursor chat finishes, or when it is waiting on you.",
                     isOn: settings.showTabIndicator
                 )
                 .disabled(!settingsStore.settings.detectAttention)

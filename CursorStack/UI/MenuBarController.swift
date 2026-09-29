@@ -49,7 +49,7 @@ final class MenuBarController: NSObject {
             menu.addItem(.separator())
             menu.addItem(header(group.name))
             for window in group.windows {
-                let mark = window.attentionState.statusPrefix
+                let mark = AttentionState.menuPrefix(attention: window.attentionState, claudeBusy: window.claudeBusy)
                 let prefix = mark.isEmpty
                     ? (window.id == group.activeWindowID ? "✓ " : "    ")
                     : mark

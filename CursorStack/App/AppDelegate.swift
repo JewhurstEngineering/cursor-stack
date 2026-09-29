@@ -216,7 +216,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(groupItem)
 
         for window in group.windows {
-            let title = window.attentionState.statusPrefix + window.displayName
+            let title = AttentionState.menuPrefix(attention: window.attentionState, claudeBusy: window.claudeBusy) + window.displayName
             let item = NSMenuItem(
                 title: title,
                 action: #selector(activateWindowFromGroupMenu(_:)),

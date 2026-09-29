@@ -362,6 +362,30 @@ private struct ChatSignalMark: View {
     }
 }
 
+private struct ClaudeSparkMark: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private static let clay = Color(red: 217.0 / 255, green: 119.0 / 255, blue: 87.0 / 255)
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: reduceMotion ? nil : 1.0 / 30.0, paused: reduceMotion)) { context in
+            let time = context.date.timeIntervalSinceReferenceDate
+            let angle = reduceMotion ? 0.0 : time.truncatingRemainder(dividingBy: 1) * 360
+            ZStack {
+                ForEach(0..<6, id: \.self) { index in
+                    Capsule()
+                        .fill(Self.clay)
+                        .frame(width: 2, height: 9)
+                        .rotationEffect(.degrees(Double(index) * 60))
+                }
+            }
+            .frame(width: 11, height: 11)
+            .rotationEffect(.degrees(angle))
+            .help("Claude Code running")
+        }
+    }
+}
+
 struct TabItemView: View {
     @ObservedObject var window: ManagedCursorWindow
     var selected: Bool
@@ -371,18 +395,24 @@ struct TabItemView: View {
     var fillsWidth: Bool = false
 
     private var helpText: String {
+        let cursor: String
         switch window.attentionState {
         case .working:
-            return "\(window.title) — chat running"
+            cursor = "\(window.title) — Cursor chat running"
         case .attention:
-            return "\(window.title) — waiting on you"
+            cursor = "\(window.title) — waiting on you"
         case .completed:
-            return "\(window.title) — chat is done"
+            cursor = "\(window.title) — Cursor chat is done"
         case .error:
-            return "\(window.title) — needs attention"
+            cursor = "\(window.title) — needs attention"
         case .unknown, .idle:
-            return window.title
+            cursor = window.title
         }
+        guard window.claudeBusy else { return cursor }
+        if cursor == window.title {
+            return "\(window.title) — Claude Code running"
+        }
+        return "\(cursor). Claude Code running"
     }
 
     private var label: String {
@@ -405,6 +435,9 @@ struct TabItemView: View {
                 ChatSignalMark(kind: window.attentionState == .error ? .error : .waiting)
             } else if showIndicator, window.attentionState.showsWorkingIndicator {
                 ChatSignalMark(kind: .running)
+            }
+            if showIndicator, window.claudeBusy {
+                ClaudeSparkMark()
             }
         }
         .padding(.horizontal, 11)
