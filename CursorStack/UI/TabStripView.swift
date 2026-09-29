@@ -370,7 +370,7 @@ private struct ClaudeSparkMark: View {
     var body: some View {
         TimelineView(.animation(minimumInterval: reduceMotion ? nil : 1.0 / 30.0, paused: reduceMotion)) { context in
             let time = context.date.timeIntervalSinceReferenceDate
-            let angle = reduceMotion ? 0.0 : time.truncatingRemainder(dividingBy: 1) * 360
+            let angle = reduceMotion ? 0.0 : time.truncatingRemainder(dividingBy: 8) / 8 * 360
             ZStack {
                 ForEach(0..<6, id: \.self) { index in
                     Capsule()
