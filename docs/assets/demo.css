@@ -21,6 +21,12 @@
 .csd-mark { width: 8px; height: 8px; border-radius: 50%; flex: none; display: none; }
 .csd-tab[data-state="working"] .csd-mark { display: block; border: 2px solid var(--amber); }
 .csd-tab[data-state="attention"] .csd-mark { display: block; background: var(--amber); }
+.csd-spark { display: none; width: 11px; height: 11px; align-items: center; justify-content: center; flex: none; }
+.csd-tab[data-claude="on"] .csd-spark { display: inline-flex; }
+.csd-spark b { width: 2px; height: 9px; border-radius: 2px; background: #d97757; display: block; position: relative; }
+.csd-spark b::before, .csd-spark b::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: inherit; }
+.csd-spark b::before { transform: rotate(60deg); }
+.csd-spark b::after { transform: rotate(120deg); }
 .csd-end { margin-left: auto; display: flex; gap: 6px; flex: none; padding-left: 12px; }
 .csd-end span { font: 500 12px var(--mac); color: rgba(255,255,255,.8); padding: 4px 9px; border-radius: 6px; background: rgba(255,255,255,.07); }
 
@@ -73,6 +79,7 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .csd-tab[data-state="working"] .csd-mark { border-top-color: transparent; animation: csd-spin 1s linear infinite; }
+  .csd-tab[data-claude="on"] .csd-spark { animation: csd-spin 8s linear infinite; }
   .csd-tab[data-state="attention"] .csd-mark { animation: csd-ping 1.6s ease-out infinite; }
   .csd-tab.arrived { animation: csd-nudge .5s ease-out; }
   .csd-typing i { animation: csd-blink 1.2s infinite; }

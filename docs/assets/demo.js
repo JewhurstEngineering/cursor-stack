@@ -15,7 +15,7 @@ window.CSDemo = (() => {
         '  <span class="k">return</span> &lt;<span class="t">Summary</span> <span class="v">items</span>={<span class="v">items</span>} <span class="v">tax</span>={<span class="v">tax</span>} /&gt;',
         '}'],
       chat: () => `<p class="csd-msg me">Add tax estimate to the checkout summary</p><p class="csd-msg bot">Done. <code>Summary</code> now takes a <code>tax</code> prop.</p><div class="csd-step">Edited checkout.tsx</div><div class="csd-step">Created lib/tax.ts</div>` },
-    { id: "billing-api", state: "working", file: "invoices.go",
+    { id: "billing-api", state: "working", claude: true, file: "invoices.go",
       tree: ["cmd/", "internal/", "invoices.go", "ledger.go", "migrations/", "0042_due_dates.sql", "go.mod"], on: 2, mods: [2, 5],
       code: [
         '<span class="k">func</span> (<span class="v">s</span> *<span class="t">Service</span>) <span class="f">Overdue</span>(<span class="v">ctx</span> <span class="t">context.Context</span>) ([]<span class="t">Invoice</span>, <span class="t">error</span>) {',
@@ -55,7 +55,7 @@ window.CSDemo = (() => {
         '  <span class="v">max_instances</span> = <span class="n">12</span>',
         '}'],
       chat: empty },
-    { id: "docs-site", state: "idle", file: "shortcuts.mdx",
+    { id: "docs-site", state: "idle", claude: true, file: "shortcuts.mdx",
       tree: ["content/", "guides/", "shortcuts.mdx", "install.mdx", "astro.config.mjs"], on: 2, mods: [],
       code: [
         '<span class="c">---</span>',
@@ -66,7 +66,7 @@ window.CSDemo = (() => {
         '| ------------ | ----- |',
         '| Next tab     | ⌃⌥ ]  |',
         '| Previous tab | ⌃⌥ [  |'],
-      chat: empty },
+      chat: () => `<p class="csd-msg me">Tighten the shortcut table</p><p class="csd-msg bot">Updating the keys column.</p><div class="csd-step live">Editing shortcuts.mdx <span class="csd-typing"><i></i><i></i><i></i></span></div>` },
   ];
 
   function mount(root, opts = {}) {
@@ -87,7 +87,7 @@ window.CSDemo = (() => {
     const tabs = P.map((p, i) => {
       const b = document.createElement("button");
       b.className = "csd-tab"; b.setAttribute("role", "tab");
-      b.innerHTML = `<span>${p.id}</span><span class="csd-mark"></span>`;
+      b.innerHTML = `<span>${p.id}</span><span class="csd-mark"></span><span class="csd-spark" aria-hidden="true"><b></b></span>`;
       b.addEventListener("click", () => select(i, true));
       strip.appendChild(b); return b;
     });
@@ -96,7 +96,18 @@ window.CSDemo = (() => {
 
     function render() {
       const p = P[current];
-      tabs.forEach((t, i) => { t.setAttribute("aria-selected", i === current); t.dataset.state = P[i].state; t.tabIndex = i === current ? 0 : -1; });
+      tabs.forEach((t, i) => {
+        const item = P[i];
+        const bits = [item.id];
+        if (item.state === "working") bits.push("Cursor running");
+        if (item.state === "attention") bits.push("waiting on you");
+        if (item.claude) bits.push("Claude Code running");
+        t.setAttribute("aria-selected", i === current);
+        t.setAttribute("aria-label", bits.join(", "));
+        t.dataset.state = item.state;
+        t.dataset.claude = item.claude ? "on" : "off";
+        t.tabIndex = i === current ? 0 : -1;
+      });
       q(".csd-side h4").textContent = p.id.toUpperCase();
       q(".csd-side ul").innerHTML = p.tree.map((f, i) => {
         const dir = f.endsWith("/");
@@ -107,7 +118,10 @@ window.CSDemo = (() => {
         const cls = l[0] === "+" ? "add" : l[0] === "-" ? "del" : "";
         return `<span class="line ${cls}"><span class="ln">${i + 1}</span>${cls ? " " + l.slice(1) : l}</span>`;
       }).join("");
-      q(".csd-chat").innerHTML = `<h4>Agent</h4>` + p.chat(p.state);
+      const who = p.claude && (p.state === "working" || p.state === "attention")
+        ? "Cursor and Claude Code"
+        : p.claude ? "Claude Code" : "Agent";
+      q(".csd-chat").innerHTML = `<h4>${who}</h4>` + p.chat(p.state);
       opts.onUpdate && opts.onUpdate({
         running: P.filter(x => x.state === "working").length,
         waiting: P.filter(x => x.state === "attention").length,

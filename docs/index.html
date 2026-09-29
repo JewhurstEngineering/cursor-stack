@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CursorStack — Tabs for your Cursor windows on macOS</title>
-<meta name="description" content="Free, open-source Mac app that groups your Cursor windows under one tab strip and shows which AI agent is waiting on you. No account, nothing uploaded.">
+<meta name="description" content="Free, open-source Mac app that groups your Cursor windows under one tab strip. It shows when Cursor’s agent or Claude Code is running, and when a chat is waiting on you.">
 <link rel="canonical" href="https://cursorstack.app/">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <meta name="theme-color" content="#e9eef6">
@@ -15,7 +15,7 @@
 <meta property="og:site_name" content="CursorStack">
 <meta property="og:url" content="https://cursorstack.app/">
 <meta property="og:title" content="CursorStack — Tabs for your Cursor windows on macOS">
-<meta property="og:description" content="One tab strip on your Cursor windows, and an amber dot on the one whose agent is waiting on you. Free and open source.">
+<meta property="og:description" content="One tab strip on your Cursor windows. An amber mark for Cursor’s agent, a spark for Claude Code, and a dot when a chat is waiting on you.">
 <meta property="og:image" content="https://cursorstack.app/images/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -23,7 +23,7 @@
 <meta property="og:locale" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="CursorStack — Tabs for your Cursor windows on macOS">
-<meta name="twitter:description" content="One tab strip on your Cursor windows, and an amber dot on the one whose agent is waiting on you. Free and open source.">
+<meta name="twitter:description" content="One tab strip on your Cursor windows. An amber mark for Cursor’s agent, a spark for Claude Code, and a dot when a chat is waiting on you.">
 <meta name="twitter:image" content="https://cursorstack.app/images/og.png">
 <meta name="twitter:image:alt" content="CursorStack: one strip, every project.">
 
@@ -33,7 +33,7 @@
   "@type": "SoftwareApplication",
   "name": "CursorStack",
   "url": "https://cursorstack.app/",
-  "description": "A macOS app that groups Cursor windows under one tab strip and shows which AI agent chat is running or waiting on you.",
+  "description": "A macOS app that groups Cursor windows under one tab strip and shows when Cursor’s agent or Claude Code is running, finished, or waiting on you.",
   "applicationCategory": "DeveloperApplication",
   "operatingSystem": "macOS 14 or later",
   "processorRequirements": "Apple silicon",
@@ -119,7 +119,15 @@
   .w .bar { height: 30px; display: flex; align-items: center; gap: 7px; padding: 0 10px; background: #2a2a2d; font: 500 12px var(--mac); color: #cfcfcf; }
   .w .bar i { width: 10px; height: 10px; border-radius: 50%; display: block; flex: none; }
   .w .bar b { font-weight: 500; margin-left: 8px; white-space: nowrap; }
-  .w .bar .ring { width: 8px; height: 8px; border-radius: 50%; border: 2px solid var(--amber); margin-left: auto; }
+  .w .bar .marks { margin-left: auto; display: flex; align-items: center; gap: 5px; }
+  .w .bar .ring { width: 8px; height: 8px; border-radius: 50%; border: 2px solid var(--amber); box-sizing: border-box; }
+  .spark { width: 11px; height: 11px; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+  .spark b { width: 2px; height: 9px; border-radius: 2px; background: #d97757; display: block; position: relative; }
+  .spark b::before, .spark b::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: inherit; }
+  .spark b::before { transform: rotate(60deg); }
+  .spark b::after { transform: rotate(120deg); }
+  @media (prefers-reduced-motion: no-preference) { .spark { animation: spark-spin 8s linear infinite; } }
+  @keyframes spark-spin { to { transform: rotate(360deg); } }
   .w .body { padding: 14px; display: grid; gap: 7px; }
   .w .body span { height: 7px; border-radius: 4px; background: #333338; display: block; }
   .w .body span.hl { background: #2f4a7a; }
@@ -133,7 +141,8 @@
   .sub { color: var(--slate); font-size: 20px; margin: 0; max-width: 48ch; }
 
   .signals { margin-top: 56px; display: grid; gap: 40px; }
-  @media (min-width: 860px) { .signals { grid-template-columns: repeat(3, 1fr); gap: 32px; } }
+  @media (min-width: 720px) { .signals { grid-template-columns: 1fr 1fr; gap: 32px; } }
+  @media (min-width: 1100px) { .signals { grid-template-columns: repeat(4, 1fr); } }
   .signals > div { border-top: 2px solid var(--ink); padding-top: 24px; }
   .chip { display: inline-flex; align-items: center; gap: 10px; height: 40px; padding: 0 14px; border-radius: 9px; background: var(--strip); color: #fff; font: 500 16px var(--mac); }
   .chip i { width: 11px; height: 11px; border-radius: 50%; display: block; }
@@ -204,12 +213,12 @@
       <div class="state after" id="after">
         <h2>One strip. Every project.</h2>
         <div>
-          <p>CursorStack lines up your Cursor windows and puts a tab strip on top. When an agent finishes or asks a question, its tab turns amber.</p>
+          <p>CursorStack lines up your Cursor windows and puts a tab strip on top. Cursor’s agent turns the tab amber. Claude Code adds a spark, and both can show at once.</p>
           <div class="cta">
             <a class="btn btn-ink" href="https://github.com/JewhurstEngineering/cursor-stack/releases/latest/download/CursorStack-1.0.14.zip">Download for Mac</a>
             <a class="btn btn-quiet" href="https://github.com/JewhurstEngineering/cursor-stack">View source</a>
           </div>
-          <p class="try">Try it: click a tab with an amber dot.</p>
+          <p class="try">Try it: click a tab with an amber dot or a spark.</p>
         </div>
       </div>
     </div></div>
@@ -221,12 +230,13 @@
 </section>
 
 <section class="band alt" id="signals"><div class="wrap">
-  <h2 class="big">Know which agent needs you.</h2>
-  <p class="sub">While a chat runs in one project, you’re usually working in another. The tab tells you when to come back, with or without a notification.</p>
+  <h2 class="big">Know which chat needs you.</h2>
+  <p class="sub">Cursor’s agent and Claude Code can both be running in the same window. The tab shows each one, and tells you when to come back.</p>
   <div class="signals">
-    <div><span class="chip">billing-api <i style="border:2.5px solid var(--amber)"></i></span><h3>Chat running</h3><p>An agent in that window is working. Leave it alone.</p></div>
-    <div><span class="chip">ios-app <i style="background:var(--amber)"></i></span><h3>Waiting on you</h3><p>It finished, or it wants an answer. One click brings that window forward.</p></div>
-    <div><span class="chip">infra <i style="background:var(--red)"></i></span><h3>Needs attention</h3><p>Something went wrong in that chat. Go and look.</p></div>
+    <div><span class="chip">billing-api <i style="border:2.5px solid var(--amber)"></i></span><h3>Cursor running</h3><p>Cursor’s agent is working in that window. Leave it alone.</p></div>
+    <div><span class="chip">docs-site <span class="spark" aria-hidden="true"><b></b></span></span><h3>Claude Code</h3><p>Claude Code is working there. The spark can sit next to Cursor’s ring.</p></div>
+    <div><span class="chip">ios-app <i style="background:var(--amber)"></i></span><h3>Waiting on you</h3><p>A Cursor chat finished, or it wants an answer. One click brings that window forward.</p></div>
+    <div><span class="chip">infra <i style="background:var(--red)"></i></span><h3>Needs attention</h3><p>Something went wrong in a Cursor chat. Go and look.</p></div>
   </div>
 </div></section>
 
@@ -240,7 +250,7 @@
   </div>
   <div class="mini" aria-hidden="true">
     <div class="mini-win" id="mini" data-edge="top">
-      <div class="mini-bar"><span class="on">web</span><span>billing-api</span><span>ios-app <i></i></span><span>infra</span></div>
+      <div class="mini-bar"><span class="on">web</span><span>billing-api <span class="spark" aria-hidden="true"><b></b></span></span><span>ios-app <i></i></span><span>infra</span></div>
       <div class="mini-body"><i style="width:40%"></i><i style="width:72%"></i><i style="width:58%"></i><i style="width:66%"></i><i style="width:30%"></i><i style="width:80%"></i><i style="width:48%"></i></div>
     </div>
   </div>
@@ -289,7 +299,7 @@
 </main>
 
 <footer class="wrap legal">
-  <small>Built by <a href="https://github.com/JewhurstEngineering">Jewhurst Engineering</a>. Free and open source. CursorStack is an independent project, not affiliated with, endorsed by, or sponsored by Anysphere or Cursor. Cursor is a trademark of its respective owner.</small>
+  <small>Built by <a href="https://github.com/JewhurstEngineering">Jewhurst Engineering</a>. Free and open source. CursorStack is an independent project, not affiliated with, endorsed by, or sponsored by Anysphere, Cursor, or Anthropic. Cursor and Claude are trademarks of their respective owners.</small>
 </footer>
 
 <script src="assets/demo.js"></script>
@@ -298,6 +308,7 @@
   const demo = CSDemo.mount(document.getElementById("demo"));
   const names = ["web", "billing-api", "ios-app", "infra", "docs-site", "ml-eval", "design-system"];
   const running = [1, 2];
+  const claude = [1, 4];
   // start positions: x as a fraction of width, y as a fraction of the area under the copy, width fraction, rotation
   const scatter = [
     [0.30, 0.18, 0.30, -3], [0.02, 0.06, 0.26, -8], [0.66, 0.02, 0.28, 6], [0.58, 0.56, 0.26, 4],
@@ -306,7 +317,11 @@
   const pile = document.getElementById("pile");
   const wins = names.map((n, i) => {
     const d = document.createElement("div"); d.className = "w";
-    d.innerHTML = `<div class="bar"><i style="background:#ff605c"></i><i style="background:#ffbd2e"></i><i style="background:#30d158"></i><b>${n}</b>${running.includes(i) ? '<span class="ring"></span>' : ""}</div>
+    const marks = [
+      running.includes(i) ? '<span class="ring"></span>' : "",
+      claude.includes(i) ? '<span class="spark" aria-hidden="true"><b></b></span>' : "",
+    ].join("");
+    d.innerHTML = `<div class="bar"><i style="background:#ff605c"></i><i style="background:#ffbd2e"></i><i style="background:#30d158"></i><b>${n}</b>${marks ? `<span class="marks">${marks}</span>` : ""}</div>
       <div class="body">${[40, 70, 55, 82, 36, 64, 48, 74, 30, 58].map((w, k) => `<span class="${k === 3 ? "hl" : ""}" style="width:${w}%"></span>`).join("")}</div>`;
     pile.appendChild(d); return d;
   });
