@@ -47,8 +47,8 @@ targets:
       properties:
         CFBundleName: CursorStack
         CFBundleDisplayName: CursorStack
-        CFBundleShortVersionString: "1.0.14"
-        CFBundleVersion: "15"
+        CFBundleShortVersionString: "1.0.15"
+        CFBundleVersion: "16"
         LSMinimumSystemVersion: "14.0"
         NSHighResolutionCapable: true
         NSHumanReadableCopyright: "Copyright © 2026 Jewhurst Engineering"
