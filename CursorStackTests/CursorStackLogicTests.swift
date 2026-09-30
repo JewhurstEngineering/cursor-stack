@@ -703,43 +703,69 @@ final class ClaudeCodeActivityTests: XCTestCase {
     private let now = Date(timeIntervalSince1970: 1_800_000_000)
 
     func testBusyClaudeSessionMatchesTheProjectFolder() {
-        let session = session(folder: "ai-meter", status: "busy", updated: now.addingTimeInterval(-12))
+        let session = session(folder: "ai-meter", status: "busy", updated: now.addingTimeInterval(-12), pid: 4242)
         XCTAssertTrue(ClaudeCodeActivity.matches(
             title: "index.html — ai-meter — Cursor",
             sessions: [session],
-            now: now
+            isAlive: { $0 == 4242 }
         ))
     }
 
-    func testStaleBusySessionDoesNotSpin() {
-        let session = session(folder: "ai-meter", status: "busy", updated: now.addingTimeInterval(-ComposerActivity.runningWindow - 5))
-        XCTAssertFalse(ClaudeCodeActivity.isBusy(session, now: now))
+    func testLongBusySessionStaysBusyWhileProcessLives() {
+        let session = session(
+            folder: "ai-meter",
+            status: "busy",
+            updated: now.addingTimeInterval(-ComposerActivity.runningWindow - 5),
+            pid: 4242
+        )
+        XCTAssertTrue(ClaudeCodeActivity.isBusy(session, isAlive: { $0 == 4242 }))
+        XCTAssertTrue(ClaudeCodeActivity.matches(
+            title: "index.html — ai-meter — Cursor",
+            sessions: [session],
+            isAlive: { $0 == 4242 }
+        ))
+    }
+
+    func testDeadProcessDoesNotMatch() {
+        let session = session(folder: "ai-meter", status: "busy", updated: now.addingTimeInterval(-12), pid: 4242)
+        XCTAssertFalse(ClaudeCodeActivity.isBusy(session, isAlive: { _ in false }))
         XCTAssertFalse(ClaudeCodeActivity.matches(
             title: "index.html — ai-meter — Cursor",
             sessions: [session],
-            now: now
+            isAlive: { _ in false }
+        ))
+    }
+
+    func testMissingPidDoesNotMatch() {
+        let session = session(folder: "ai-meter", status: "busy", updated: now.addingTimeInterval(-12), pid: nil)
+        XCTAssertFalse(ClaudeCodeActivity.isBusy(session, isAlive: { _ in true }))
+        XCTAssertFalse(ClaudeCodeActivity.matches(
+            title: "index.html — ai-meter — Cursor",
+            sessions: [session],
+            isAlive: { _ in true }
         ))
     }
 
     func testIdleSessionDoesNotMatch() {
-        let idle = session(folder: "ai-meter", status: "idle", updated: now.addingTimeInterval(-4))
-        XCTAssertFalse(ClaudeCodeActivity.isBusy(idle, now: now))
+        let idle = session(folder: "ai-meter", status: "idle", updated: now.addingTimeInterval(-4), pid: 4242)
+        XCTAssertFalse(ClaudeCodeActivity.isBusy(idle, isAlive: { _ in true }))
         XCTAssertFalse(ClaudeCodeActivity.matches(
             title: "index.html — ai-meter — Cursor",
             sessions: [idle],
-            now: now
+            isAlive: { _ in true }
         ))
     }
 
     func testParserKeepsCursorSessionsAndDropsTheTerminal() throws {
         let fresh = Int(now.timeIntervalSince1970 * 1000)
-        let cursor = Data(#"{"entrypoint":"claude-vscode","cwd":"/Users/jewhurst/GitHub/projects/ai-meter","status":"busy","statusUpdatedAt":\#(fresh)}"#.utf8)
-        let terminal = Data(#"{"entrypoint":"cli","cwd":"/tmp/ai-meter","status":"busy","statusUpdatedAt":\#(fresh)}"#.utf8)
+        let cursor = Data(#"{"entrypoint":"claude-vscode","cwd":"/Users/jewhurst/GitHub/projects/ai-meter","status":"busy","statusUpdatedAt":\#(fresh),"pid":4242}"#.utf8)
+        let terminal = Data(#"{"entrypoint":"cli","cwd":"/tmp/ai-meter","status":"busy","statusUpdatedAt":\#(fresh),"pid":99}"#.utf8)
         let parsed = try XCTUnwrap(ClaudeCodeActivity.session(from: cursor))
         XCTAssertEqual(parsed.folderName, "ai-meter")
         XCTAssertEqual(parsed.status, "busy")
+        XCTAssertEqual(parsed.pid, 4242)
         XCTAssertNil(ClaudeCodeActivity.session(from: terminal))
-        XCTAssertTrue(ClaudeCodeActivity.isBusy(parsed, now: now))
+        XCTAssertTrue(ClaudeCodeActivity.isBusy(parsed, isAlive: { $0 == 4242 }))
     }
 
     func testReaderSkipsKeyFilesAndNonCursorEntrypoints() throws {
@@ -749,10 +775,10 @@ final class ClaudeCodeActivityTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: root) }
 
         let fresh = Int(now.timeIntervalSince1970 * 1000)
-        try Data(#"{"entrypoint":"claude-vscode","cwd":"/work/ai-meter","status":"busy","statusUpdatedAt":\#(fresh)}"#.utf8)
+        try Data(#"{"entrypoint":"claude-vscode","cwd":"/work/ai-meter","status":"busy","statusUpdatedAt":\#(fresh),"pid":84806}"#.utf8)
             .write(to: sessions.appendingPathComponent("84806.json"))
         try Data("secret".utf8).write(to: sessions.appendingPathComponent("84806.key"))
-        try Data(#"{"entrypoint":"cli","cwd":"/work/other","status":"busy","statusUpdatedAt":\#(fresh)}"#.utf8)
+        try Data(#"{"entrypoint":"cli","cwd":"/work/other","status":"busy","statusUpdatedAt":\#(fresh),"pid":9}"#.utf8)
             .write(to: sessions.appendingPathComponent("9.json"))
 
         let reader = ClaudeCodeActivityReader(claudeDirectory: root)
@@ -766,10 +792,11 @@ final class ClaudeCodeActivityTests: XCTestCase {
 
         XCTAssertTrue(snapshot.readable)
         XCTAssertEqual(snapshot.sessions.map(\.folderName), ["ai-meter"])
+        XCTAssertEqual(snapshot.sessions.map(\.pid), [84806])
         XCTAssertTrue(ClaudeCodeActivity.matches(
             title: "notes.md — ai-meter — Cursor",
             sessions: snapshot.sessions,
-            now: now
+            isAlive: { $0 == 84806 }
         ))
     }
 
@@ -780,8 +807,8 @@ final class ClaudeCodeActivityTests: XCTestCase {
         XCTAssertEqual(AttentionState.menuPrefix(attention: .attention, claudeBusy: true), "● ✶ ")
     }
 
-    private func session(folder: String, status: String, updated: Date?) -> ClaudeCodeSession {
-        ClaudeCodeSession(folderName: folder, status: status, statusUpdated: updated)
+    private func session(folder: String, status: String, updated: Date?, pid: Int32?) -> ClaudeCodeSession {
+        ClaudeCodeSession(folderName: folder, status: status, statusUpdated: updated, pid: pid)
     }
 }
 

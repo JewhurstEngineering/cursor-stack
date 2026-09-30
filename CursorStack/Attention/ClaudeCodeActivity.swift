@@ -1,9 +1,20 @@
+import Darwin
 import Foundation
 
 struct ClaudeCodeSession: Equatable, Sendable {
     var folderName: String
     var status: String
     var statusUpdated: Date?
+    var pid: Int32?
+}
+
+enum ProcessLiveness {
+    /// `kill(pid, 0)` does not signal. EPERM still means the process exists.
+    static func isAlive(_ pid: Int32) -> Bool {
+        guard pid > 0 else { return false }
+        if kill(pid, 0) == 0 { return true }
+        return errno == EPERM
+    }
 }
 
 struct ClaudeCodeSnapshot: Equatable, Sendable {
@@ -16,17 +27,23 @@ struct ClaudeCodeSnapshot: Equatable, Sendable {
 enum ClaudeCodeActivity {
     static let cursorEntrypoint = "claude-vscode"
 
-    /// A busy session that has not reported in recently is stuck, same window as a Cursor run.
-    static func isBusy(_ session: ClaudeCodeSession, now: Date = Date()) -> Bool {
-        guard session.status == "busy", let updated = session.statusUpdated else { return false }
-        let age = now.timeIntervalSince(updated)
-        return age > -60 && age < ComposerActivity.runningWindow
+    /// Claude writes status when it changes, not as a heartbeat. Busy lasts while that process is alive.
+    static func isBusy(
+        _ session: ClaudeCodeSession,
+        isAlive: (Int32) -> Bool = ProcessLiveness.isAlive
+    ) -> Bool {
+        guard session.status == "busy", let pid = session.pid, pid > 0 else { return false }
+        return isAlive(pid)
     }
 
-    static func matches(title: String, sessions: [ClaudeCodeSession], now: Date = Date()) -> Bool {
+    static func matches(
+        title: String,
+        sessions: [ClaudeCodeSession],
+        isAlive: (Int32) -> Bool = ProcessLiveness.isAlive
+    ) -> Bool {
         guard let token = WindowTitleParser.projectToken(from: title) else { return false }
         return sessions.contains { session in
-            isBusy(session, now: now)
+            self.isBusy(session, isAlive: isAlive)
                 && session.folderName.compare(token, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame
         }
     }
@@ -42,8 +59,22 @@ enum ClaudeCodeActivity {
         return ClaudeCodeSession(
             folderName: folder,
             status: json["status"] as? String ?? "",
-            statusUpdated: date(from: json["statusUpdatedAt"])
+            statusUpdated: date(from: json["statusUpdatedAt"]),
+            pid: pid(from: json["pid"])
         )
+    }
+
+    private static func pid(from value: Any?) -> Int32? {
+        let number: Int64
+        if let value = value as? NSNumber {
+            number = value.int64Value
+        } else if let value = value as? Int {
+            number = Int64(value)
+        } else {
+            return nil
+        }
+        guard number > 0, number <= Int64(Int32.max) else { return nil }
+        return Int32(number)
     }
 
     private static func date(from value: Any?) -> Date? {
