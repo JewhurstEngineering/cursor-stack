@@ -358,6 +358,48 @@ final class TabBarSettingsTests: XCTestCase {
         XCTAssertEqual(decoded.effectiveTabBarPosition.isVertical, false)
     }
 
+    func testMissingSparkStyleDecodesToBoth() throws {
+        var object = try JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(AppSettings())
+        ) as! [String: Any]
+        object.removeValue(forKey: "claudeSparkStyle")
+        let decoded = try JSONDecoder().decode(
+            AppSettings.self,
+            from: try JSONSerialization.data(withJSONObject: object)
+        )
+        XCTAssertEqual(decoded.effectiveClaudeSparkStyle, .both)
+    }
+
+    func testBreatheFadesTheWholeSparkTogether() {
+        let dim = ClaudeSparkStyle.breathe.spokeOpacity(index: 0, wave: 0)
+        let bright = ClaudeSparkStyle.breathe.spokeOpacity(index: 0, wave: 1)
+        XCTAssertEqual(dim, ClaudeSparkStyle.breathe.spokeOpacity(index: 3, wave: 0), accuracy: 0.001)
+        XCTAssertLessThan(dim, bright)
+    }
+
+    func testSpokeKeepsOneArmBrighter() {
+        let lead = ClaudeSparkStyle.spoke.spokeOpacity(index: 0, wave: 0.2)
+        let opposite = ClaudeSparkStyle.spoke.spokeOpacity(index: 3, wave: 0.2)
+        XCTAssertGreaterThan(lead, opposite)
+        XCTAssertGreaterThan(ClaudeSparkStyle.spoke.spokeOpacity(index: 0, wave: 1), lead)
+        XCTAssertEqual(
+            opposite,
+            ClaudeSparkStyle.spoke.spokeOpacity(index: 3, wave: 1),
+            accuracy: 0.001
+        )
+    }
+
+    func testBothFadesAndKeepsTheLeadArm() {
+        XCTAssertGreaterThan(
+            ClaudeSparkStyle.both.spokeOpacity(index: 0, wave: 0.4),
+            ClaudeSparkStyle.both.spokeOpacity(index: 3, wave: 0.4)
+        )
+        XCTAssertLessThan(
+            ClaudeSparkStyle.both.spokeOpacity(index: 0, wave: 0),
+            ClaudeSparkStyle.both.spokeOpacity(index: 0, wave: 1)
+        )
+    }
+
     func testVerticalThicknessUsesTabWidth() {
         var settings = AppSettings()
         settings.tabBarPosition = .left

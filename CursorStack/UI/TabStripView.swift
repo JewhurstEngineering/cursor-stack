@@ -118,6 +118,7 @@ struct TabStripView: View {
                 showIndicator: app.settingsStore.settings.showTabIndicator,
                 showFullTitle: app.settingsStore.settings.showFullTitle,
                 showProjectName: app.settingsStore.settings.showProjectName,
+                sparkStyle: app.settingsStore.settings.effectiveClaudeSparkStyle,
                 fillsWidth: fillsWidth
             )
             .onTapGesture {
@@ -363,6 +364,7 @@ private struct ChatSignalMark: View {
 }
 
 private struct ClaudeSparkMark: View {
+    var style: ClaudeSparkStyle
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private static let clay = Color(red: 217.0 / 255, green: 119.0 / 255, blue: 87.0 / 255)
@@ -371,12 +373,14 @@ private struct ClaudeSparkMark: View {
         TimelineView(.animation(minimumInterval: reduceMotion ? nil : 1.0 / 30.0, paused: reduceMotion)) { context in
             let time = context.date.timeIntervalSinceReferenceDate
             let angle = reduceMotion ? 0.0 : time.truncatingRemainder(dividingBy: 8) / 8 * 360
+            let wave = reduceMotion ? 1.0 : 0.5 + 0.5 * sin(time * .pi * 2 / 1.6)
             ZStack {
                 ForEach(0..<6, id: \.self) { index in
                     Capsule()
                         .fill(Self.clay)
                         .frame(width: 2, height: 9)
                         .rotationEffect(.degrees(Double(index) * 60))
+                        .opacity(style.spokeOpacity(index: index, wave: wave))
                 }
             }
             .frame(width: 11, height: 11)
@@ -392,6 +396,7 @@ struct TabItemView: View {
     var showIndicator: Bool
     var showFullTitle: Bool
     var showProjectName: Bool
+    var sparkStyle: ClaudeSparkStyle
     var fillsWidth: Bool = false
 
     private var helpText: String {
@@ -437,7 +442,7 @@ struct TabItemView: View {
                 ChatSignalMark(kind: .running)
             }
             if showIndicator, window.claudeBusy {
-                ClaudeSparkMark()
+                ClaudeSparkMark(style: sparkStyle)
             }
         }
         .padding(.horizontal, 11)

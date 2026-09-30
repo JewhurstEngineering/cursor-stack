@@ -118,6 +118,18 @@ struct SettingsView: View {
         )
     }
 
+    private var claudeSparkStyle: Binding<ClaudeSparkStyle> {
+        Binding(
+            get: { settingsStore.settings.effectiveClaudeSparkStyle },
+            set: { style in
+                var updated = settingsStore.settings
+                updated.claudeSparkStyle = style
+                settingsStore.settings = updated
+                app.applySettingsSideEffects()
+            }
+        )
+    }
+
     private var tabLabelStyle: Binding<TabLabelStyle> {
         Binding(
             get: {
@@ -516,6 +528,24 @@ struct SettingsView: View {
                 )
                 .disabled(!settingsStore.settings.detectAttention)
                 .opacity(settingsStore.settings.detectAttention ? 1 : 0.45)
+                Divider()
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Claude spark")
+                        .font(.system(size: 13, weight: .semibold))
+                    Picker("Claude spark", selection: claudeSparkStyle) {
+                        ForEach(ClaudeSparkStyle.allCases) { style in
+                            Text(style.title).tag(style)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
+                    Text(claudeSparkStyle.wrappedValue.caption)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .disabled(!settingsStore.settings.detectAttention || !settingsStore.settings.showTabIndicator)
+                .opacity(settingsStore.settings.detectAttention && settingsStore.settings.showTabIndicator ? 1 : 0.45)
             }
 
             SettingsCard(title: "Notifications", symbol: "bell.badge") {

@@ -253,6 +253,47 @@ enum AppAppearance: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+enum ClaudeSparkStyle: String, Codable, CaseIterable, Identifiable {
+    case breathe
+    case spoke
+    case both
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .breathe: "Breathe"
+        case .spoke: "Spoke"
+        case .both: "Both"
+        }
+    }
+
+    var caption: String {
+        switch self {
+        case .breathe:
+            "The whole spark fades in and out while it slowly turns."
+        case .spoke:
+            "One arm pulses brighter, so you can see the spark turn."
+        case .both:
+            "The spark fades in and out, and one arm stays brighter as it turns."
+        }
+    }
+
+    private var breathes: Bool { self == .breathe || self == .both }
+    private var highlightsSpoke: Bool { self == .spoke || self == .both }
+
+    /// `wave` runs from 0 to 1. Reduced motion passes 1 so the mark holds its brightest frame.
+    func spokeOpacity(index: Int, wave: Double) -> Double {
+        let weight = highlightsSpoke ? (0.5 + 0.5 * cos(Double(index) * .pi / 3)) : 1
+        if highlightsSpoke, !breathes {
+            return 0.32 + 0.18 * weight + weight * wave * 0.50
+        }
+        let shape = highlightsSpoke ? (0.42 + 0.58 * weight) : 1
+        let breathe = breathes ? (0.45 + 0.55 * wave) : 1
+        return shape * breathe
+    }
+}
+
 enum TabBarPosition: String, Codable, CaseIterable, Identifiable {
     case top
     case bottom
@@ -303,6 +344,11 @@ struct AppSettings: Codable, Equatable {
 
     var detectAttention: Bool = true
     var showTabIndicator: Bool = true
+    var claudeSparkStyle: ClaudeSparkStyle?
+
+    var effectiveClaudeSparkStyle: ClaudeSparkStyle {
+        claudeSparkStyle ?? .both
+    }
     var sendNotifications: Bool = true
     var notificationSound: Bool = false
     var notifyWhenFrontmost: Bool = false
