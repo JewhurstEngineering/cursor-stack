@@ -22,6 +22,7 @@ final class GroupManager: ObservableObject {
     private let discovery: CursorDiscoveryService
     private let persistDebouncer = Debouncer(delay: 0.4)
     private let fitDebouncer = Debouncer(delay: 0.24)
+    private var frameLockTokens: [UUID: UUID] = [:]
     private var knownElementTokens = Set<UInt>()
     private var consecutiveMisses: [UUID: Int] = [:]
     private(set) var persistEmptyGroups = false
@@ -358,7 +359,7 @@ final class GroupManager: ObservableObject {
         }
         let clamped = max(0, min(index, destination.windows.count))
         destination.windows.insert(window, at: clamped)
-        applyFrameIfNeeded(destination.synchronizedFrame, to: window)
+        lockNewMembers(in: destination)
         destination.objectWillChange.send()
         delegate?.groupManagerNeedsPersistence(self)
         objectWillChange.send()
@@ -376,7 +377,7 @@ final class GroupManager: ObservableObject {
         consecutiveMisses[restored.id] = 0
         knownElementTokens.insert(CFHash(restored.element))
         if applyFrame {
-            applyFrameIfNeeded(group.synchronizedFrame, to: restored)
+            lockNewMembers(in: group)
         }
         group.objectWillChange.send()
         delegate?.groupManagerNeedsPersistence(self)
@@ -437,6 +438,7 @@ final class GroupManager: ObservableObject {
 
     func add(windows: [ManagedCursorWindow], to groupID: UUID) {
         guard let group = groups.first(where: { $0.id == groupID }) else { return }
+        var appended = false
         for window in windows {
             guard !group.windows.contains(where: { $0.id == window.id }) else { continue }
             if let match = matchingUnresolved(for: window, in: group) {
@@ -445,7 +447,10 @@ final class GroupManager: ObservableObject {
             }
             group.windows.append(window)
             ungroupedWindows.removeAll { $0.id == window.id }
-            applyFrameIfNeeded(group.synchronizedFrame, to: window)
+            appended = true
+        }
+        if appended {
+            lockNewMembers(in: group)
         }
         group.objectWillChange.send()
         delegate?.groupManagerNeedsPersistence(self)
@@ -572,6 +577,7 @@ final class GroupManager: ObservableObject {
         if collapseUnresolvedAgainstLiveWindows() {
             membershipChanged = true
         }
+        relockDriftedBackgroundMembers()
 
         if membershipChanged {
             delegate?.groupManagerNeedsPersistence(self)
@@ -787,10 +793,78 @@ final class GroupManager: ObservableObject {
         parkAsUnresolved(window, persist: true)
     }
 
+    /// A new Cursor window keeps its own size until Cursor finishes laying it out.
+    /// Hold the stack size across that, and try again so the new window lands on
+    /// the frames the rest of the stack already share.
+    private func lockNewMembers(in group: RuntimeWindowGroup) {
+        guard !group.liveWindows.isEmpty else { return }
+        applyMemberFrames(in: group, includingActive: true)
+        guard !group.isPaused, !group.isFullScreenPaused else { return }
+        let until = Date().addingTimeInterval(1.2)
+        if group.suppressAXUntil == nil || group.suppressAXUntil! < until {
+            group.suppressAXUntil = until
+        }
+        let token = UUID()
+        frameLockTokens[group.id] = token
+        for delay in [0.35, 0.9] {
+            let groupID = group.id
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                MainActor.assumeIsolated {
+                    guard let self, self.frameLockTokens[groupID] == token else { return }
+                    self.relockFrames(in: groupID, includingActive: true)
+                }
+            }
+        }
+    }
+
+    private func relockDriftedBackgroundMembers() {
+        guard NSEvent.pressedMouseButtons == 0 else { return }
+        for group in groups {
+            applyMemberFrames(in: group, includingActive: false)
+        }
+    }
+
+    private func relockFrames(in groupID: UUID, includingActive: Bool) {
+        guard let group = groups.first(where: { $0.id == groupID }) else { return }
+        guard NSEvent.pressedMouseButtons == 0 else { return }
+        applyMemberFrames(in: group, includingActive: includingActive, reread: true)
+    }
+
+    private func applyMemberFrames(in group: RuntimeWindowGroup, includingActive: Bool, reread: Bool = false) {
+        guard !group.isPaused, !group.isFullScreenPaused else { return }
+        let targets = group.liveWindows.filter { window in
+            if window.isMinimized { return false }
+            if !includingActive, window.id == group.activeWindowID { return false }
+            return true
+        }
+        var drifted: [ManagedCursorWindow] = []
+        for window in targets {
+            if reread, let live = try? accessibility.frame(of: window.snapshot) {
+                window.frame = live
+            }
+            if !ScreenCoordinateConverter.framesApproximatelyEqual(window.frame, group.synchronizedFrame, tolerance: 4) {
+                drifted.append(window)
+            }
+        }
+        guard !drifted.isEmpty else { return }
+        group.isApplyingSynchronizedFrame = true
+        let until = Date().addingTimeInterval(0.5)
+        if group.suppressAXUntil == nil || group.suppressAXUntil! < until {
+            group.suppressAXUntil = until
+        }
+        defer { group.isApplyingSynchronizedFrame = false }
+        for window in drifted {
+            applyFrameIfNeeded(group.synchronizedFrame, to: window)
+        }
+    }
+
     private func applyCanonicalFrame(in group: RuntimeWindowGroup, raising active: ManagedCursorWindow?) {
         guard !group.isPaused, !group.isFullScreenPaused else { return }
         group.isApplyingSynchronizedFrame = true
-        group.suppressAXUntil = Date().addingTimeInterval(0.5)
+        let until = Date().addingTimeInterval(0.5)
+        if group.suppressAXUntil == nil || group.suppressAXUntil! < until {
+            group.suppressAXUntil = until
+        }
         defer { group.isApplyingSynchronizedFrame = false }
         for window in group.liveWindows {
             applyFrameIfNeeded(group.synchronizedFrame, to: window)
@@ -883,8 +957,12 @@ final class GroupManager: ObservableObject {
         return best
     }
 
-    private func applyFrameIfNeeded(_ frame: CGRect, to window: ManagedCursorWindow) {
-        if ScreenCoordinateConverter.framesApproximatelyEqual(window.frame, frame) {
+    private func applyFrameIfNeeded(_ frame: CGRect, to window: ManagedCursorWindow, reread: Bool = false) {
+        if reread, let live = try? accessibility.frame(of: window.snapshot) {
+            window.frame = live
+        }
+        let tolerance: CGFloat = reread ? 4 : 2
+        if ScreenCoordinateConverter.framesApproximatelyEqual(window.frame, frame, tolerance: tolerance) {
             return
         }
         do {
