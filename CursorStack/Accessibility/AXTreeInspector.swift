@@ -92,6 +92,9 @@ enum ChatControlLabel {
         if label == "stop" || label == "working" || label == "working..." || label == "working…" {
             return .working
         }
+        if label == "thinking" || label == "thinking..." || label == "thinking…" {
+            return .working
+        }
         if label.hasPrefix("generating responses") {
             return .working
         }
@@ -358,6 +361,10 @@ enum ChatControlScanner {
         }
         if let help = AXHelpers.stringAttribute(element, kAXHelpAttribute as String) {
             appendControl(&labels, help)
+        }
+        if role == "AXStaticText",
+           let value = AXHelpers.stringAttribute(element, kAXValueAttribute as String) {
+            appendControl(&labels, value)
         }
         return labels
     }

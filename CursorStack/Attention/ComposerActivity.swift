@@ -69,6 +69,26 @@ enum ComposerActivity {
     }
 }
 
+enum AttentionSignals {
+    /// The window on screen can be mid-run without `unfinishedRunAt` ever being set.
+    /// A live Stop / Thinking control beats that idle composer row. An unreadable
+    /// tree leaves the composer result alone so background tabs keep their spinner.
+    static func resolve(composer: AttentionState?, live: AttentionObservation?) -> AttentionState? {
+        if let live,
+           live.confidence >= 0.4,
+           live.state == .working || live.state == .attention || live.state == .error {
+            return live.state
+        }
+        if let composer, composer != .unknown {
+            return composer
+        }
+        if let live, live.confidence >= 0.4, live.state != .unknown {
+            return live.state
+        }
+        return nil
+    }
+}
+
 enum FinishedChatSignal {
     /// A run that was spinning and then stopped is done. Hold that until the tab is opened.
     static func resolve(live: AttentionState, previous: AttentionState, holding: Bool) -> (state: AttentionState, holding: Bool) {

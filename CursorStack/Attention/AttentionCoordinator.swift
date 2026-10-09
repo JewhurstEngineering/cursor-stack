@@ -16,7 +16,9 @@ final class AccessibilityAttentionProvider: AttentionSignalProvider {
     private var regions: [UUID: AXUIElement] = [:]
     private var retryAfter: [UUID: Date] = [:]
     private var enhancedPIDs = Set<pid_t>()
-    private var didRelocateThisCycle = false
+    /// Full tree walks are expensive, so each poll only locates a few windows
+    /// that do not already have a cached composer region.
+    private var locatesRemaining = 0
 
     func startMonitoring(window: ManagedCursorWindow) {
         monitored.insert(window.id)
@@ -38,32 +40,36 @@ final class AccessibilityAttentionProvider: AttentionSignalProvider {
     }
 
     func beginCycle() {
-        didRelocateThisCycle = false
+        locatesRemaining = 3
     }
 
     func poll(window: ManagedCursorWindow) -> AttentionObservation? {
+        poll(window: window, publish: true)
+    }
+
+    func poll(window: ManagedCursorWindow, publish: Bool) -> AttentionObservation? {
         guard monitored.contains(window.id) else { return nil }
         let justEnabled = enableChatAccessibility(pid: window.pid)
         if let region = regions[window.id], ChatControlScanner.isAlive(region) {
-            return publish(Self.observation(from: ChatControlScanner.readLabels(in: region)), for: window)
+            return report(Self.observation(from: ChatControlScanner.readLabels(in: region)), for: window, publish: publish)
         }
         regions[window.id] = nil
 
         if !justEnabled, let retry = retryAfter[window.id], retry > Date() {
-            return publish(Self.unreadable(), for: window)
+            return report(Self.unreadable(), for: window, publish: publish)
         }
-        guard !didRelocateThisCycle else {
-            return publish(Self.unreadable(), for: window)
+        guard locatesRemaining > 0 else {
+            return report(Self.unreadable(), for: window, publish: publish)
         }
-        didRelocateThisCycle = true
+        locatesRemaining -= 1
 
         guard let located = ChatControlScanner.locateRegion(in: window.element) else {
             retryAfter[window.id] = Date().addingTimeInterval(20)
-            return publish(Self.unreadable(), for: window)
+            return report(Self.unreadable(), for: window, publish: publish)
         }
         retryAfter[window.id] = nil
         regions[window.id] = located.region
-        return publish(Self.observation(from: located.read), for: window)
+        return report(Self.observation(from: located.read), for: window, publish: publish)
     }
 
     nonisolated static func interpret(labels: [String], regionReadable: Bool) -> AttentionObservation {
@@ -79,11 +85,17 @@ final class AccessibilityAttentionProvider: AttentionSignalProvider {
         return unreadable()
     }
 
-    private func publish(_ observation: AttentionObservation, for window: ManagedCursorWindow) -> AttentionObservation {
+    private func report(
+        _ observation: AttentionObservation,
+        for window: ManagedCursorWindow,
+        publish: Bool
+    ) -> AttentionObservation {
         if CSLog.debugEnabled {
             CSLog.attention.debug("chat control \(window.displayName, privacy: .public): \(observation.state.rawValue, privacy: .public)")
         }
-        onStateChanged?(window.id, observation)
+        if publish {
+            onStateChanged?(window.id, observation)
+        }
         return observation
     }
 
@@ -135,6 +147,9 @@ final class AttentionCoordinator: ObservableObject {
     private var composerReadInFlight = false
     private var claudeReadInFlight = false
     private var finishedChats = Set<UUID>()
+    /// Windows whose spinner came from the live control, not from an open composer run.
+    /// A later unread tree must not clear that just because composer still says idle.
+    private var liveSignals = Set<UUID>()
     private var tracking: [UUID: AttentionTrackingState] = [:]
     private var monitoredWindows: [UUID: ManagedCursorWindow] = [:]
 
@@ -181,6 +196,8 @@ final class AttentionCoordinator: ObservableObject {
         metadataProvider.stopMonitoring(window: window)
         visualProvider.stopMonitoring(window: window)
         monitoredWindows[window.id] = nil
+        liveSignals.remove(window.id)
+        finishedChats.remove(window.id)
     }
 
     func prune(keeping ids: Set<UUID>) {
@@ -243,15 +260,29 @@ final class AttentionCoordinator: ObservableObject {
 
     private func apply(_ snapshot: ComposerActivitySnapshot, selectedWindowID: UUID?) {
         accessibilityProvider.beginCycle()
-        for window in monitoredWindows.values {
-            if snapshot.readable, let state = ComposerActivity.state(
+        for window in windowsOrderedForScan(selectedFirst: selectedWindowID) {
+            let composer = snapshot.readable ? ComposerActivity.state(
                 matching: window.title,
                 workspaces: snapshot.workspaces,
                 headers: snapshot.headers
-            ) {
+            ) : nil
+            // An open run already recorded in composer does not need a tree walk.
+            // Idle and unknown do: the visible Stop / Thinking control is often the
+            // only sign that this window is actually generating.
+            let live: AttentionObservation?
+            if composer == .working || composer == .attention {
+                live = nil
+            } else {
+                live = accessibilityProvider.poll(window: window, publish: false)
+            }
+            let resolved = AttentionSignals.resolve(composer: composer, live: live)
+            if live?.state == .unknown, liveSignals.contains(window.id), composer != .working, composer != .attention {
+                continue
+            }
+            if let resolved {
                 let previous = states[window.id] ?? .unknown
                 let shown = FinishedChatSignal.resolve(
-                    live: state,
+                    live: resolved,
                     previous: previous,
                     holding: finishedChats.contains(window.id)
                 )
@@ -263,17 +294,30 @@ final class AttentionCoordinator: ObservableObject {
                 if CSLog.debugEnabled {
                     CSLog.attention.debug("composer \(window.displayName, privacy: .public): \(shown.state.rawValue, privacy: .public)")
                 }
+                let fromLiveControl = live?.state == shown.state && (shown.state == .working || shown.state == .attention || shown.state == .error)
+                if fromLiveControl {
+                    liveSignals.insert(window.id)
+                } else if shown.state != .working && shown.state != .attention && shown.state != .error {
+                    liveSignals.remove(window.id)
+                }
                 handle(windowID: window.id, observation: AttentionObservation(
                     state: shown.state,
-                    confidence: 0.9,
-                    source: .composer
+                    confidence: fromLiveControl ? (live?.confidence ?? 0.85) : 0.9,
+                    source: fromLiveControl ? .accessibility : .composer
                 ))
-                continue
             }
-            _ = accessibilityProvider.poll(window: window)
-            if settings.enableVisualDetection, window.id != selectedWindowID {
+            let covered = resolved == .working || resolved == .attention || resolved == .error
+            if composer == nil, !covered, settings.enableVisualDetection, window.id != selectedWindowID {
                 _ = visualProvider.poll(window: window)
             }
+        }
+    }
+
+    private func windowsOrderedForScan(selectedFirst selectedWindowID: UUID?) -> [ManagedCursorWindow] {
+        let windows = Array(monitoredWindows.values)
+        guard let selectedWindowID else { return windows }
+        return windows.sorted { lhs, rhs in
+            lhs.id == selectedWindowID && rhs.id != selectedWindowID
         }
     }
 

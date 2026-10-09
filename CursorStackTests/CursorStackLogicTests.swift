@@ -684,6 +684,30 @@ final class ComposerActivityTests: XCTestCase {
         XCTAssertFalse(unrelated.holding)
     }
 
+    func testVisibleWorkingBeatsAComposerRowWithNoOpenRun() {
+        let resolved = AttentionSignals.resolve(
+            composer: .idle,
+            live: AttentionObservation(state: .working, confidence: 0.85, source: .accessibility)
+        )
+        XCTAssertEqual(resolved, .working)
+    }
+
+    func testComposerWorkingStandsWhenTheWindowCannotBeRead() {
+        let resolved = AttentionSignals.resolve(
+            composer: .working,
+            live: AttentionObservation(state: .unknown, confidence: 0.1, source: .accessibility)
+        )
+        XCTAssertEqual(resolved, .working)
+    }
+
+    func testComposerIdleStandsWhenTheLiveTreeIsUnreadable() {
+        let resolved = AttentionSignals.resolve(
+            composer: .idle,
+            live: AttentionObservation(state: .unknown, confidence: 0.1, source: .accessibility)
+        )
+        XCTAssertEqual(resolved, .idle)
+    }
+
     func testNewRunClearsTheFinishedDot() {
         let running = FinishedChatSignal.resolve(live: .working, previous: .completed, holding: true)
         XCTAssertEqual(running.state, .working)
@@ -738,6 +762,18 @@ final class ComposerActivityTests: XCTestCase {
             checkpoint: checkpoint,
             updated: updated
         )
+    }
+}
+
+final class ChatControlLabelTests: XCTestCase {
+    func testThinkingStatusIsARunningChat() {
+        XCTAssertEqual(ChatControlLabel.classify("Thinking"), .working)
+        XCTAssertEqual(ChatControlLabel.classify("thinking…"), .working)
+    }
+
+    func testStopControlIsStillRunning() {
+        XCTAssertEqual(ChatControlLabel.classify("Stop"), .working)
+        XCTAssertEqual(ChatControlLabel.classify("Stop generation"), .working)
     }
 }
 
