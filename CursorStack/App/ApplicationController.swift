@@ -276,7 +276,7 @@ final class ApplicationController: NSObject, ObservableObject {
         alert.accessoryView = field
         alert.addButton(withTitle: "Rename")
         alert.addButton(withTitle: "Cancel")
-        if alert.runModal() == .alertFirstButtonReturn {
+        if runForegroundModal(alert) == .alertFirstButtonReturn {
             groupManager.renameGroup(group.id, to: field.stringValue)
         }
     }
@@ -290,7 +290,7 @@ final class ApplicationController: NSObject, ObservableObject {
         alert.accessoryView = field
         alert.addButton(withTitle: "Rename")
         alert.addButton(withTitle: "Cancel")
-        if alert.runModal() == .alertFirstButtonReturn {
+        if runForegroundModal(alert) == .alertFirstButtonReturn {
             groupManager.renameTab(window.id, alias: field.stringValue)
         }
     }
@@ -551,7 +551,10 @@ final class ApplicationController: NSObject, ObservableObject {
         }
         NSApp.activate(ignoringOtherApps: true)
         alert.window.collectionBehavior.insert(.moveToActiveSpace)
-        alert.window.level = .floating
+        alert.window.hidesOnDeactivate = false
+        // Above Cursor and above the floating tab bar, which is what hid the rename field.
+        alert.window.level = .modalPanel
+        alert.window.orderFrontRegardless()
         let response = alert.runModal()
         if previousPolicy != .regular {
             NSApp.setActivationPolicy(previousPolicy)
