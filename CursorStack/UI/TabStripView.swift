@@ -242,9 +242,22 @@ struct TabStripView: View {
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
                         .stroke(Color(nsColor: .separatorColor).opacity(0.7), lineWidth: 1)
                 )
+                .overlay(alignment: .topTrailing) {
+                    if app.updateAvailable {
+                        Circle()
+                            .fill(Color.red)
+                            .frame(width: 8, height: 8)
+                            .overlay(
+                                Circle()
+                                    .strokeBorder(Color(nsColor: .windowBackgroundColor), lineWidth: 1.5)
+                            )
+                            .offset(x: 2, y: -2)
+                    }
+                }
         }
         .buttonStyle(.plain)
-        .help("Open CursorStack Settings")
+        .help(app.updateAvailable ? "Update available — open Settings" : "Open CursorStack Settings")
+        .accessibilityLabel(app.updateAvailable ? "Settings, update available" : "Settings")
     }
 
     @ViewBuilder

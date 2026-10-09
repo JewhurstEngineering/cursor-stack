@@ -237,8 +237,10 @@ struct SettingsView: View {
             SettingsCard(title: "Updates", symbol: "arrow.triangle.2.circlepath") {
                 SettingsActionRow(
                     title: "CursorStack \(appVersionLabel)",
-                    detail: "Checks GitHub Releases for a signed update and installs it in place.",
-                    buttonTitle: "Check for Updates…"
+                    detail: app.updateAvailable
+                        ? "An update is ready. Install it in place from Check for Updates."
+                        : "Checks GitHub Releases for a signed update and installs it in place.",
+                    buttonTitle: app.updateAvailable ? "Install Update…" : "Check for Updates…"
                 ) {
                     AppDelegate.shared?.checkForUpdates(nil)
                 }

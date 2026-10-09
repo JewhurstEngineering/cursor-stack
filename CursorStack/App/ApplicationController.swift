@@ -1,4 +1,5 @@
 import AppKit
+import Sparkle
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -40,6 +41,8 @@ final class ApplicationController: NSObject, ObservableObject {
     private var wakeRecoveryTask: Task<Void, Never>?
 
     @Published var permissionGranted = false
+    /// Sparkle found a newer signed release. Cleared when a later check finds nothing.
+    @Published var updateAvailable = false
     @Published var pickerTargetGroupID: UUID?
     @Published var draggedTabWindowID: UUID?
     @Published var targetedTabWindowID: UUID?
@@ -86,6 +89,7 @@ final class ApplicationController: NSObject, ObservableObject {
 
         menuBar = MenuBarController(app: self)
         menuBar?.reload()
+        observeSparkleUpdates()
         launchAtLogin.apply(enabled: settingsStore.settings.launchAtLogin)
         CSLog.debugEnabled = settingsStore.settings.debugLogging
 
@@ -553,6 +557,30 @@ final class ApplicationController: NSObject, ObservableObject {
             NSApp.setActivationPolicy(previousPolicy)
         }
         return response
+    }
+
+    private func observeSparkleUpdates() {
+        let center = NotificationCenter.default
+        center.addObserver(
+            self,
+            selector: #selector(sparkleDidFindUpdate),
+            name: .SUUpdaterDidFindValidUpdate,
+            object: nil
+        )
+        center.addObserver(
+            self,
+            selector: #selector(sparkleDidNotFindUpdate),
+            name: .SUUpdaterDidNotFindUpdate,
+            object: nil
+        )
+    }
+
+    @objc private func sparkleDidFindUpdate() {
+        updateAvailable = true
+    }
+
+    @objc private func sparkleDidNotFindUpdate() {
+        updateAvailable = false
     }
 
     private func applyActivationPolicy() {
