@@ -199,6 +199,13 @@ final class ApplicationController: NSObject, ObservableObject {
         permissionManager.openSystemSettings()
     }
 
+    func refreshAttention(windowID: UUID) {
+        attention.refresh(
+            windowID: windowID,
+            selectedWindowID: groupManager.preferredGroup()?.activeWindowID
+        )
+    }
+
     func activate(windowID: UUID, in groupID: UUID) {
         keepChromeVisibleUntil = Date().addingTimeInterval(0.6)
         groupManager.activate(windowID: windowID, in: groupID)

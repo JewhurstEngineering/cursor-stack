@@ -125,6 +125,8 @@ struct TabStripView: View {
                 app.activate(windowID: window.id, in: group.id)
             }
             .contextMenu {
+                Button("Refresh Status") { app.refreshAttention(windowID: window.id) }
+                Divider()
                 Button("Switch To") { app.activate(windowID: window.id, in: group.id) }
                 Button(fillsWidth ? "Move Up" : "Move Left") {
                     app.groupManager.reorder(in: group.id, moving: window.id, to: max(0, index - 1))

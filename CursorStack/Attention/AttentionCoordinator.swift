@@ -43,6 +43,12 @@ final class AccessibilityAttentionProvider: AttentionSignalProvider {
         locatesRemaining = 3
     }
 
+    /// Drop a cached composer region and its retry wait so the next poll walks the tree again.
+    func invalidate(windowID: UUID) {
+        regions[windowID] = nil
+        retryAfter[windowID] = nil
+    }
+
     func poll(window: ManagedCursorWindow) -> AttentionObservation? {
         poll(window: window, publish: true)
     }
@@ -150,6 +156,8 @@ final class AttentionCoordinator: ObservableObject {
     /// Windows whose spinner came from the live control, not from an open composer run.
     /// A later unread tree must not clear that just because composer still says idle.
     private var liveSignals = Set<UUID>()
+    /// Set by a manual refresh so that window is walked first, ahead of the locate budget.
+    private var forcedWindowID: UUID?
     private var tracking: [UUID: AttentionTrackingState] = [:]
     private var monitoredWindows: [UUID: ManagedCursorWindow] = [:]
 
@@ -217,6 +225,16 @@ final class AttentionCoordinator: ObservableObject {
         pollClaude()
     }
 
+    /// Forget a stuck read for one window and check it on the next pass.
+    /// A cached region, a 20-second retry, and a held live spinner all get dropped.
+    func refresh(windowID: UUID, selectedWindowID: UUID?) {
+        guard monitoredWindows[windowID] != nil else { return }
+        liveSignals.remove(windowID)
+        accessibilityProvider.invalidate(windowID: windowID)
+        forcedWindowID = windowID
+        poll(selectedWindowID: selectedWindowID)
+    }
+
     private func pollComposer(selectedWindowID: UUID?) {
         guard !composerReadInFlight else { return }
         composerReadInFlight = true
@@ -259,8 +277,10 @@ final class AttentionCoordinator: ObservableObject {
     }
 
     private func apply(_ snapshot: ComposerActivitySnapshot, selectedWindowID: UUID?) {
+        let forced = forcedWindowID
+        forcedWindowID = nil
         accessibilityProvider.beginCycle()
-        for window in windowsOrderedForScan(selectedFirst: selectedWindowID) {
+        for window in windowsOrderedForScan(selectedFirst: selectedWindowID, forced: forced) {
             let composer = snapshot.readable ? ComposerActivity.state(
                 matching: window.title,
                 workspaces: snapshot.workspaces,
@@ -313,12 +333,24 @@ final class AttentionCoordinator: ObservableObject {
         }
     }
 
-    private func windowsOrderedForScan(selectedFirst selectedWindowID: UUID?) -> [ManagedCursorWindow] {
+    private func windowsOrderedForScan(selectedFirst selectedWindowID: UUID?, forced forcedWindowID: UUID?) -> [ManagedCursorWindow] {
         let windows = Array(monitoredWindows.values)
-        guard let selectedWindowID else { return windows }
-        return windows.sorted { lhs, rhs in
-            lhs.id == selectedWindowID && rhs.id != selectedWindowID
+        let order = Self.scanOrder(ids: windows.map(\.id), forced: forcedWindowID, selected: selectedWindowID)
+        let byID = Dictionary(uniqueKeysWithValues: windows.map { ($0.id, $0) })
+        return order.compactMap { byID[$0] }
+    }
+
+    /// The refreshed window is first, then the selected one, so a manual check is not spent on other tabs.
+    nonisolated static func scanOrder(ids: [UUID], forced: UUID?, selected: UUID?) -> [UUID] {
+        ids.sorted { lhs, rhs in
+            rank(lhs, forced: forced, selected: selected) < rank(rhs, forced: forced, selected: selected)
         }
+    }
+
+    private nonisolated static func rank(_ id: UUID, forced: UUID?, selected: UUID?) -> Int {
+        if id == forced { return 0 }
+        if id == selected { return 1 }
+        return 2
     }
 
     func markViewedIfAppropriate(_ window: ManagedCursorWindow) {

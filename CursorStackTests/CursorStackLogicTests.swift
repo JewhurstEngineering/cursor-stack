@@ -765,6 +765,31 @@ final class ComposerActivityTests: XCTestCase {
     }
 }
 
+final class AttentionScanOrderTests: XCTestCase {
+    func testRefreshedWindowIsCheckedBeforeTheSelectedOne() {
+        let refreshed = UUID()
+        let selected = UUID()
+        let other = UUID()
+        let order = AttentionCoordinator.scanOrder(
+            ids: [other, selected, refreshed],
+            forced: refreshed,
+            selected: selected
+        )
+        XCTAssertEqual(order, [refreshed, selected, other])
+    }
+
+    func testSelectedWindowStaysFirstWhenNothingWasRefreshed() {
+        let selected = UUID()
+        let other = UUID()
+        let order = AttentionCoordinator.scanOrder(
+            ids: [other, selected],
+            forced: nil,
+            selected: selected
+        )
+        XCTAssertEqual(order.first, selected)
+    }
+}
+
 final class ChatControlLabelTests: XCTestCase {
     func testThinkingStatusIsARunningChat() {
         XCTAssertEqual(ChatControlLabel.classify("Thinking"), .working)
