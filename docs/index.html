@@ -37,8 +37,7 @@
   "applicationCategory": "DeveloperApplication",
   "operatingSystem": "macOS 14 or later",
   "processorRequirements": "Apple silicon",
-  "softwareVersion": "1.0.14",
-  "downloadUrl": "https://github.com/JewhurstEngineering/cursor-stack/releases/latest/download/CursorStack-1.0.14.zip",
+  "downloadUrl": "https://github.com/JewhurstEngineering/cursor-stack/releases/latest",
   "image": "https://cursorstack.app/images/og.png",
   "screenshot": "https://cursorstack.app/images/settings.jpg",
   "isAccessibleForFree": true,
@@ -199,7 +198,7 @@
 <header class="nav"><div class="wrap">
   <a class="word" href="#main">Cursor<span>Stack</span></a>
   <nav aria-label="On this page"><a href="#signals">Signals</a><a href="#edges">Any edge</a><a href="#keys">Shortcuts</a><a href="#privacy">Privacy</a></nav>
-  <a class="btn btn-ink" href="https://github.com/JewhurstEngineering/cursor-stack/releases/latest/download/CursorStack-1.0.14.zip">Download</a>
+  <a class="btn btn-ink" data-latest-download href="https://github.com/JewhurstEngineering/cursor-stack/releases/latest">Download</a>
 </div></header>
 
 <main id="main">
@@ -215,7 +214,7 @@
         <div>
           <p>CursorStack lines up your Cursor windows and puts a tab strip on top. Cursor’s agent turns the tab amber. Claude Code adds a spark, and both can show at once.</p>
           <div class="cta">
-            <a class="btn btn-ink" href="https://github.com/JewhurstEngineering/cursor-stack/releases/latest/download/CursorStack-1.0.14.zip">Download for Mac</a>
+            <a class="btn btn-ink" data-latest-download href="https://github.com/JewhurstEngineering/cursor-stack/releases/latest">Download for Mac</a>
             <a class="btn btn-quiet" href="https://github.com/JewhurstEngineering/cursor-stack">View source</a>
           </div>
           <p class="try">Try it: click a tab with an amber dot or a spark.</p>
@@ -292,7 +291,7 @@
 <section class="wrap foot">
   <h2 class="big">Get back to the one that’s waiting.</h2>
   <div class="cta">
-    <a class="btn btn-ink" href="https://github.com/JewhurstEngineering/cursor-stack/releases/latest/download/CursorStack-1.0.14.zip">Download CursorStack 1.0.14</a>
+    <a class="btn btn-ink" data-latest-download data-latest-label href="https://github.com/JewhurstEngineering/cursor-stack/releases/latest">Download for Mac</a>
     <a class="btn btn-quiet" href="https://github.com/JewhurstEngineering/cursor-stack">View source</a>
   </div>
 </section>
@@ -303,6 +302,44 @@
 </footer>
 
 <script src="assets/demo.js"></script>
+<script>
+(() => {
+  // Release zips are named CursorStack-<version>.zip, so a pinned filename 404s on the next release.
+  const links = [...document.querySelectorAll("[data-latest-download]")];
+  let ready = false;
+  const pending = fetch("https://api.github.com/repos/JewhurstEngineering/cursor-stack/releases/latest", {
+    headers: { Accept: "application/vnd.github+json" },
+    signal: AbortSignal.timeout(8000),
+  }).then(response => {
+    if (!response.ok) throw new Error(String(response.status));
+    return response.json();
+  }).then(release => {
+    const version = String(release.tag_name || "").replace(/^v/, "");
+    const zip = (release.assets || []).find(asset => asset.name === `CursorStack-${version}.zip`);
+    if (!zip?.browser_download_url) throw new Error("missing zip");
+    for (const link of links) {
+      link.href = zip.browser_download_url;
+      if (link.hasAttribute("data-latest-label") && version) link.textContent = `Download CursorStack ${version}`;
+    }
+    const schema = document.querySelector('script[type="application/ld+json"]');
+    if (schema) {
+      const data = JSON.parse(schema.textContent);
+      if (version) data.softwareVersion = version;
+      data.downloadUrl = zip.browser_download_url;
+      schema.textContent = JSON.stringify(data);
+    }
+    ready = true;
+  }).catch(() => {});
+
+  for (const link of links) {
+    link.addEventListener("click", event => {
+      if (ready || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      event.preventDefault();
+      pending.then(() => { location.href = link.href; });
+    });
+  }
+})();
+</script>
 <script>
 (() => {
   const demo = CSDemo.mount(document.getElementById("demo"));
